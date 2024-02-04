@@ -1,2 +1,1 @@
-# GDP_47
-Code for a small joint implant testing rig
+This folder is for all the code we are writing for the project. It has been linked to a git account to help with documentation and tracability
