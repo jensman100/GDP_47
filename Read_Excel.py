@@ -1,7 +1,6 @@
-''' The is used to create a script to control the implant testing rig
-    1. First it reads an excel file containing steps for a 'mission flight cycle'.
-    2. Next excel data is converted to force and rotation values.
-    3. Finally a templatecode is converted run the flight mission cycle for an arduino.
+''' This script reads an excel file and plots the timeline of the flight mission cycle. 
+    For Python 3.12.1 64-bit. 
+    Author: Joe Hensman
 '''
 
 ### Importing Libraries
@@ -17,8 +16,10 @@ df_settings = pd.read_excel(file_location, sheet_name='Settings')
 ### Plotting Timeline
 # Calculating Start Times
 df_fms['start_time'] = 0
+
 for i in range(1, len(df_fms)):
-    df_fms['start_time'][i] = df_fms['start_time'][i-1] + df_fms['Duration'][i-1]
+    if i > 0:
+        df_fms.loc[i, 'start_time'] = df_fms.loc[i-1, 'start_time'] + df_fms.loc[i-1, 'Duration']
 
 # Create a figure and axis
 fig, ax = plt.subplots()
