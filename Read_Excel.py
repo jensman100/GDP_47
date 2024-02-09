@@ -1,7 +1,6 @@
 ''' This script reads an excel file and plots the timeline of the flight mission cycle. 
     For Python 3.12.1 64-bit. 
     Author: Joe Hensman
-    Added this as a test line to see if the Git is working.
 '''
 
 ### Importing Libraries
