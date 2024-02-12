@@ -7,7 +7,6 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import signal
 
 ### Joe's location
 file_location = r'C:\Users\joeh2\OneDrive - University of Southampton\Documents\Southampton\GDP\General - Small Joint Implant Testing Rig\11 - Code\GDP_47\Flight_Mission_Cycle.xlsx'
@@ -17,7 +16,7 @@ file_location = r'C:\Users\joeh2\OneDrive - University of Southampton\Documents\
 ### Reading the Excel File
 df_writing = pd.read_excel(file_location, sheet_name='Writing', header=None, index_col=0)
 df_writing.insert(0, 'initial', [np.NaN, 0, 0, 0, 0, 0])
-df_writing.loc['start_time'] = df_writing.loc['Duration'].cumsum()
+df_writing.loc['end_time'] = df_writing.loc['Duration'].cumsum()
 df_writing = df_writing.transpose()
 
 # Get the parameters for the triangle wave
@@ -44,4 +43,7 @@ time.insert(0, 0)
 
 # Plot the graph
 plt.plot(time, amplitude)
+plt.title('Range of Motion - Angle vs Time')
+plt.ylabel('Set Angle (Deg)')
+plt.xlabel('Time (s)')
 plt.show()
