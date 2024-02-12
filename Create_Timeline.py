@@ -9,12 +9,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 ### Reading Joe's Excel File
-## file_location = r'C:\Users\joeh2\OneDrive - University of Southampton\Documents\Southampton\GDP\General - Small Joint Implant Testing Rig\11 - Code\GDP_47\Flight_Mission_Cycle.xlsx'
+file_location = r'C:\Users\joeh2\OneDrive - University of Southampton\Documents\Southampton\GDP\General - Small Joint Implant Testing Rig\11 - Code\GDP_47\Flight_Mission_Cycle.xlsx'
 ### Read Henry's Excel File
-file_location = r'D:\OneDrive - University of Southampton\Part 4\FEEG6013 - GDP\Electronics\GDP_47\GDP_47\Flight_Mission_Cycle.xlsx'
+# file_location = r'D:\OneDrive - University of Southampton\Part 4\FEEG6013 - GDP\Electronics\GDP_47\GDP_47\Flight_Mission_Cycle.xlsx'
 
 df_fms = pd.read_excel(file_location, sheet_name='Flight Mission Cycle')
-df_settings = pd.read_excel(file_location, sheet_name='Settings')
 
 ### Plotting Timeline
 # Calculating Start Times

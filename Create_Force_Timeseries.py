@@ -15,13 +15,17 @@ file_location = r'C:\Users\joeh2\OneDrive - University of Southampton\Documents\
 
 ### Reading the Excel File
 df_writing = pd.read_excel(file_location, sheet_name='Writing', header=None, index_col=0)
-df_writing.insert(0, 'initial', [np.NaN, 0, 0])
 df_writing.loc['start_time'] = df_writing.loc['Duration'].cumsum()
 df_writing = df_writing.transpose()
-print(df_writing)
+
+### Checking data
+if list(df_writing['Force'])[0] > 0 or list(df_writing['Force'])[0] < 0:
+    print('Warning: Force is not zero at the start of the activity. Please check the data.')
+if list(df_writing['Force'])[-1] > 0 or list(df_writing['Force'])[-1] < 0:
+    print('Warning: Force is not zero at the end of the activity. Please check the data.')
 
 ### Plotting the Force vs Time Graph
-plt.plot(df_writing['start_time'], df_writing['Force_End'])
+plt.plot(df_writing['start_time'], df_writing['Force'])
 plt.xlabel('Time')
 plt.ylabel('Force')
 plt.title('Force vs Time')
