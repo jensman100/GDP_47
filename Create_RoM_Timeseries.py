@@ -16,7 +16,6 @@ file_location = r'C:\Users\joeh2\OneDrive - University of Southampton\Documents\
 
 ### Reading the Excel File
 df_writing = pd.read_excel(file_location, sheet_name='Writing', header=None, index_col=0)
-df_writing.insert(0, 'initial', [np.NaN, 0, 0, 0, 0, 0])
 df_writing.loc['end_time'] = df_writing.loc['Duration'].cumsum()
 df_writing = df_writing.transpose()
 
