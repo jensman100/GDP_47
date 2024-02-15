@@ -13,7 +13,6 @@ def read_mission_cycle(file_location):
     ''' Reads a sheet named Flight Mission Cycle and returns a pandas dataframe with setting end times.
         '''
     df = pd.read_excel(file_location, sheet_name='Flight Mission Cycle')
-    df['setting_end_time'] = df['Duration'].cumsum()
     return df
 
 def plot_timeline(df):
@@ -21,14 +20,15 @@ def plot_timeline(df):
         '''
     if len(df['Duration']) > 0:
         error = False
-        plt.figure(figsize=(10, 4))
-        plt.ylim([-0.5, 1.5])            # setting y limits
+        plt.figure(figsize=(10, 3))
+        plt.ylim([-0.5, 1])            # setting y limits
         plt.yticks([])                 # removing y ticks
         for spine in plt.gca().spines.values():  # Remove the box around the outside of the plot
             spine.set_visible(False)
         plt.xlim([-10, list(df['setting_end_time'])[-1] + 10]) # setting x limits
         plt.title('Timeline') # adding title
         plt.xlabel('Time (minutes)') # adding x label
+        plt.subplots_adjust(top=0.6, bottom=0.3) # Adjusting the plot size
 
         # Plot each event as a colored section
         for index, event in df.iterrows():
@@ -42,6 +42,30 @@ def plot_timeline(df):
         print('ERROR: No data in the mission cycle sheet. Please check the data.')
         error = True
     return error
+
+def plot_timeline_dict(timing_dict,  end_time):
+    ''' This function takes a dictionary and plots a timeline of the mission cycle.
+    {key: [start_time, duration]}
+        '''
+
+    error = False
+    plt.figure(figsize=(10, 3))
+    plt.ylim([-0.5, 1])            # setting y limits
+    plt.yticks([])                 # removing y ticks
+    for spine in plt.gca().spines.values():  # Remove the box around the outside of the plot
+        spine.set_visible(False)
+    plt.xlim([-10, end_time  + 10]) # setting x limits
+    plt.title('Timeline') # adding title
+    plt.xlabel('Time (minutes)') # adding x label
+    plt.subplots_adjust(top=0.6, bottom=0.3) # Adjusting the plot size
+
+    # Plot each event as a colored section
+    for key in timing_dict.keys():
+        start_time = timing_dict[key][1]
+        duration = timing_dict[key][0]
+        center = start_time + duration/2
+        plt.barh(y=0, height=1, width=duration, left=start_time, edgecolor='black', label = f'{key}')
+        plt.text(center, 0, f'{key}', ha='center', va='center', color='black')
 
 
 def read_setting(file_location, sheet_name):
@@ -66,9 +90,13 @@ def prepare_setting(df):
         print('Warning: Force is not zero at the end of the activity. Please check the data.')
     if list(df['Duration'])[0] > 0 or list(df['Duration'])[0] < 0:                                  # If duration is not zero at the start
         print('Warning: Duration is not zero at the start of the activity. Please check the data.')
+    
+    if len(list(df['Force'])) < 2:                                                                  # If there are less than 2 data points
+        print('ERROR: Less than 2 force data points. Please check the data.')
+        error = True
     if len(list(df['Force'])) != len(list(df['Duration'])):                                         # If force and duration are not the same length
-        print('Warning: Force and Duration are not the same length. Please check the data.')
-
+        print('ERROR: Force and Duration are not the same length. Please check the data.')
+        error = True
     if np.isnan(list(df['Force'])[0]):                                                                  # If there is no data in the force column
         print('ERROR: No data in the force column. Please check the data.')
         error = True
@@ -93,8 +121,8 @@ def prepare_setting(df):
     if not error:                                      
         if list(df['Max_RoM'])[0] < list(df['Min_RoM'])[0]:                                         # If Max RoM is less than Min RoM
             wrong_max_rom = list(df['Max_RoM'])[0]
-            list(df['Max_RoM'])[0] = list(df['Min_RoM'])[0]
-            list(df['Min_RoM'])[0] = wrong_max_rom
+            df.loc[1, 'Max_RoM'] = list(df['Min_RoM'])[0]
+            df.loc[1, 'Min_RoM'] = wrong_max_rom
             print('Warning: Max RoM was less than Min RoM. Data has been changed.')
     
     return df, error

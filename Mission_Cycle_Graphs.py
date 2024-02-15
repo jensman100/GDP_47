@@ -26,14 +26,17 @@ except:
     print("ERROR: Mission cycle cannot be read. Please check the sheet names are formatted correctly and try again")
     exit()
 
-settings = list(mission_cycle['Setting']) # Gathering setting names
 
-### Plotting mission cycle timeline
-error = plot_timeline(mission_cycle)
-if error:
+settings = list(mission_cycle['Setting']) # Gathering setting names
+if len(settings) < 1:
+    print('ERROR: No settings entered. Please enter a mission cycle and try again')
     exit()
 
 ### Plotting setting graphs
+timings = {} # Create a dictionary to store the start_time, duration of each setting 
+# {key: [start_time, duration]}
+start_time = 0
+
 for setting in settings:
     print(f'Processing {setting} settings...')
     if setting in excel.sheet_names:
@@ -42,6 +45,11 @@ for setting in settings:
         df, error = prepare_setting(df)
 
         if not error:
+            # Data for timeline
+            duration = max(df['end_time'])
+            timings[setting] = [duration, start_time]
+            start_time += duration
+
             # Creating figure plot with mosaic
             fig, axs = plt.subplot_mosaic('''   aaa
                                                 bbc''', figsize=(10, 8))
@@ -57,4 +65,12 @@ for setting in settings:
     else:
         print(f'Warning: {setting} sheet not found')
 
+### Plotting mission cycle timeline
+print('Processing mission cycle...')
+#*** Next plot total force and angle vs time on flight mission cycle
+error = plot_timeline_dict(timings, start_time) # Inputs are dictionary and final start and duration times
+if error:
+    exit()
+print('Displaying graphs...')
 plt.show()
+print('Complete.')
