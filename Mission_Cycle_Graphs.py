@@ -69,21 +69,31 @@ for setting in settings:
 
                 number_of_changes = len(ftime)
                 count = 1
-                final_value = updated_ftime[-1]
+                final_fvalue = updated_ftime[-1]
                 while count < cycles:
-                    updated_ftime += [x  + final_value + (count-1) * fduration for x in ftime[-number_of_changes:]]
+                    updated_ftime += [x  + final_fvalue + (count-1) * fduration for x in ftime[-number_of_changes:]]
                     count += 1
                 
                 force_history += force 
                 ftime_history += updated_ftime
 
-                # angle, time = plot_degree_vs_time(df, axs['b'])
-                # angle = angle * cycles
-                # time = time * cycles
-                # updated_time = [x + start_time for x in time]
-                # angle_history += angle
-                # atime_history += updated_time
-                # plot_angle_visual(df, axs['c'])
+                angle, atime, n_saws = plot_degree_vs_time(df, axs['b'])
+
+                aduration = max(atime)
+                plot_angle_visual(df, axs['c'])
+                angle = angle * cycles
+                updated_atime = [x + start_time for x in atime]
+
+                number_of_changes= len(atime)
+                count = 1
+                final_avalue = updated_atime[-1]
+                while count < cycles:
+                    updated_atime += [x + final_avalue + (count-1)* aduration for x in atime[-number_of_changes:]]
+                    count += 1
+
+                angle_history += angle
+                atime_history += updated_atime
+                
                 duration_with_cycles = fduration * cycles
                 timings[setting] = [duration_with_cycles, start_time]
                 start_time += duration_with_cycles
@@ -103,7 +113,7 @@ fig, axs = plt.subplot_mosaic('''a
                             c''', figsize=(10, 8))
 plot_timeline_dict(timings, start_time, axs['a']) # Inputs are dictionary and final start and duration times
 plot_mission_force(ftime_history, force_history, axs['b'])
-# plot_mission_angle(atime_history, angle_history, axs['c'])
+plot_mission_angle(atime_history, angle_history, axs['c'])
 print('Displaying graphs...')
 plt.show()
 print('Complete.')

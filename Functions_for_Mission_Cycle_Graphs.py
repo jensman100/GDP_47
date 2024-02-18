@@ -158,7 +158,7 @@ def plot_degree_vs_time(df, axs):
     axs.set_ylabel('Set Angle (Deg)')
     axs.set_xlabel('Time (s)')
 
-    return amplitude, time
+    return amplitude, time, n_saws
 
 def plot_angle_visual(df, axs):
     ''' This function takes a dataframe and plots the angle vs time on a given axis.
@@ -231,3 +231,4 @@ def plot_mission_angle(time, angle, axs):
     axs.set_title('Force Cycle')
     axs.set_xlabel('Time')
     axs.set_ylabel('Angle')
+    axs.set_xlim(0)
