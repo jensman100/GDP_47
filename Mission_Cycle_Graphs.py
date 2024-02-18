@@ -27,7 +27,7 @@ except:
     exit()
 
 
-settings = list(mission_cycle['Setting']) # Gathering setting names
+settings = list(mission_cycle.index) # Gathering setting names
 if len(settings) < 1:
     print('ERROR: No settings entered. Please enter a mission cycle and try again')
     exit()
@@ -35,6 +35,10 @@ if len(settings) < 1:
 ### Plotting setting graphs
 timings = {} # Create a dictionary to store the start_time, duration of each setting 
 # {key: [start_time, duration]}
+force_history = [] # Create a list to store the force history
+angle_history = [] # Create a list to store the angle history
+ftime_history = [] # Create a list to store the force time history
+atime_history = [] # Create a list to store the angle time history
 start_time = 0
 
 for setting in settings:
@@ -46,20 +50,47 @@ for setting in settings:
 
         if not error:
             # Data for timeline
-            duration = max(df['end_time'])
-            timings[setting] = [duration, start_time]
-            start_time += duration
+            cycles = mission_cycle.loc[setting, 'No. of cycles']
+            if setting not in timings:
 
-            # Creating figure plot with mosaic
-            fig, axs = plt.subplot_mosaic('''   aaa
-                                                bbc''', figsize=(10, 8))
-            # a for force time graph, b for degree time graph, c for angle visual
+                # Creating figure plot with mosaic
+                fig, axs = plt.subplot_mosaic('''   aaa
+                                                    bbc''', figsize=(10, 8))
+                # a for force time graph, b for degree time graph, c for angle visual
 
-            fig.suptitle(f'{setting} settings', fontsize = 20) # adding title
+                fig.suptitle(f'{setting} settings', fontsize = 20) # adding title
 
-            plot_force_vs_time(df, axs['a'])
-            plot_degree_vs_time(df, axs['b'])
-            plot_angle_visual(df, axs['c'])
+                force, ftime = plot_force_vs_time(df, axs['a'])
+                
+                fduration = max(ftime)
+
+                force = force * cycles
+                updated_ftime = [x + start_time for x in ftime]
+
+                number_of_changes = len(ftime)
+                count = 1
+                final_value = updated_ftime[-1]
+                while count < cycles:
+                    updated_ftime += [x  + final_value + (count-1) * fduration for x in ftime[-number_of_changes:]]
+                    count += 1
+                
+                force_history += force 
+                ftime_history += updated_ftime
+
+                # angle, time = plot_degree_vs_time(df, axs['b'])
+                # angle = angle * cycles
+                # time = time * cycles
+                # updated_time = [x + start_time for x in time]
+                # angle_history += angle
+                # atime_history += updated_time
+                # plot_angle_visual(df, axs['c'])
+                duration_with_cycles = fduration * cycles
+                timings[setting] = [duration_with_cycles, start_time]
+                start_time += duration_with_cycles
+
+            else:
+                print(f'ERROR: {setting} entered more than once. Please check the mission cycle and try again.')
+                exit()
         else:
             print(f'ERROR: {setting} not processed due to error(s). See error message(s) above')
     else:
@@ -67,10 +98,12 @@ for setting in settings:
 
 ### Plotting mission cycle timeline
 print('Processing mission cycle...')
-#*** Next plot total force and angle vs time on flight mission cycle
-error = plot_timeline_dict(timings, start_time) # Inputs are dictionary and final start and duration times
-if error:
-    exit()
+fig, axs = plt.subplot_mosaic('''a
+                            b
+                            c''', figsize=(10, 8))
+plot_timeline_dict(timings, start_time, axs['a']) # Inputs are dictionary and final start and duration times
+plot_mission_force(ftime_history, force_history, axs['b'])
+# plot_mission_angle(atime_history, angle_history, axs['c'])
 print('Displaying graphs...')
 plt.show()
 print('Complete.')

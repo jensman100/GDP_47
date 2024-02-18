@@ -12,7 +12,7 @@ import matplotlib.patches as patches
 def read_mission_cycle(file_location):
     ''' Reads a sheet named Flight Mission Cycle and returns a pandas dataframe with setting end times.
         '''
-    df = pd.read_excel(file_location, sheet_name='Flight Mission Cycle')
+    df = pd.read_excel(file_location, sheet_name='Flight Mission Cycle', index_col=0)
     return df
 
 def plot_timeline(df):
@@ -43,31 +43,6 @@ def plot_timeline(df):
         error = True
     return error
 
-def plot_timeline_dict(timing_dict,  end_time):
-    ''' This function takes a dictionary and plots a timeline of the mission cycle.
-    {key: [start_time, duration]}
-        '''
-
-    error = False
-    plt.figure(figsize=(10, 3))
-    plt.ylim([-0.5, 1])            # setting y limits
-    plt.yticks([])                 # removing y ticks
-    for spine in plt.gca().spines.values():  # Remove the box around the outside of the plot
-        spine.set_visible(False)
-    plt.xlim([-10, end_time  + 10]) # setting x limits
-    plt.title('Timeline') # adding title
-    plt.xlabel('Time (minutes)') # adding x label
-    plt.subplots_adjust(top=0.6, bottom=0.3) # Adjusting the plot size
-
-    # Plot each event as a colored section
-    for key in timing_dict.keys():
-        start_time = timing_dict[key][1]
-        duration = timing_dict[key][0]
-        center = start_time + duration/2
-        plt.barh(y=0, height=1, width=duration, left=start_time, edgecolor='black', label = f'{key}')
-        plt.text(center, 0, f'{key}', ha='center', va='center', color='black')
-
-
 def read_setting(file_location, sheet_name):
     ''' Reads in a specific sheet from an excel file and returns a pandas dataframe
         '''
@@ -94,7 +69,7 @@ def prepare_setting(df):
     if len(list(df['Force'])) < 2:                                                                  # If there are less than 2 data points
         print('ERROR: Less than 2 force data points. Please check the data.')
         error = True
-    if len(list(df['Force'])) != len(list(df['Duration'])):                                         # If force and duration are not the same length
+    if df['Force'].isna().sum() != df['Duration'].isna().sum():                                         # If force and duration are not the same length
         print('ERROR: Force and Duration are not the same length. Please check the data.')
         error = True
     if np.isnan(list(df['Force'])[0]):                                                                  # If there is no data in the force column
@@ -130,12 +105,14 @@ def prepare_setting(df):
 def plot_force_vs_time(df, axs):
     ''' This function takes a dataframe and plots the force vs time on a given axis.
         '''
-    
-    axs.plot(df['end_time'], df['Force'])
+    end_time = list(df['end_time'])
+    force= list(df['Force'])
+    axs.plot(end_time, force)
     axs.set_xlabel('Time')
     axs.set_ylabel('Force')
     axs.set_title('Force vs Time')
-
+    return force, end_time
+    
 def calcualte_roms_and_periods(df):
     ''' This function takes a dataframe and calculates the max and min RoM and the period of the activity.
         '''
@@ -181,6 +158,8 @@ def plot_degree_vs_time(df, axs):
     axs.set_ylabel('Set Angle (Deg)')
     axs.set_xlabel('Time (s)')
 
+    return amplitude, time
+
 def plot_angle_visual(df, axs):
     ''' This function takes a dataframe and plots the angle vs time on a given axis.
         '''
@@ -218,3 +197,37 @@ def plot_angle_visual(df, axs):
     axs.axis('off')
     axs.set_aspect('equal')
     axs.set_title('Angle Visual')
+
+def plot_timeline_dict(timing_dict,  end_time, axs):
+    ''' This function takes a dictionary and plots a timeline of the mission cycle.
+    {key: [start_time, duration]}
+        '''
+    axs.set_ylim([-0.5, 1])            # setting y limits
+    axs.set_yticks([])                 # removing y ticks
+    # for spine in axs.gca().spines.values():  # Remove the box around the outside of the plot
+    #     axs.set_visible(False)
+    # axs.set_xlim([-10, end_time  + 10]) # setting x limits
+    axs.set_title('Timeline') # adding title
+    axs.set_xlabel('Time (minutes)') # adding x label
+    # axs.subplots_adjust(top=0.6, bottom=0.3) # Adjusting the plot size
+
+    # Plot each event as a colored section
+    for key in timing_dict.keys():
+        start_time = timing_dict[key][1]
+        duration = timing_dict[key][0]
+        center = start_time + duration/2
+        axs.barh(y=0, height=1, width=duration, left=start_time, edgecolor='black', label = f'{key}')
+        axs.text(center, 0, f'{key}', ha='center', va='center', color='black')
+
+def plot_mission_force(time, force, axs):
+    axs.plot(time, force, label = 'Force')
+    axs.set_title('Force Cycle')
+    axs.set_xlabel('Time')
+    axs.set_ylabel('Force')
+    axs.set_xlim(0)
+
+def plot_mission_angle(time, angle, axs):
+    axs.plot(time, angle, label = 'Force')
+    axs.set_title('Force Cycle')
+    axs.set_xlabel('Time')
+    axs.set_ylabel('Angle')
