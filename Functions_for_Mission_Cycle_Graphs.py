@@ -135,22 +135,21 @@ def plot_degree_vs_time(df, axs):
     n_saws = int(total_time/period)
     remainder = total_time % period
     if remainder> 0:
-        print('Warning: Period does not divide total time. Please check the data.')
+        print('ERROR: Period does not divide total time. Please check the data.')
 
     # Plotting Angle vs Time
     amplitude = [max_rom, min_rom] * n_saws # Create points to plot
-    amplitude.insert(0, 0)
+    amplitude.append(0) # Add the final point
+    amplitude.insert(0, 0) # Add the first point
 
-    num_elements = len(amplitude)
-    time = list(np.linspace(period/4, total_time + period/4, num_elements-1))
-    time.insert(0, 0)
+    max_fraction_through = abs(max_rom/(max_rom - min_rom))
 
-    # Making sure the angle ends at 0
-    if time[-1] > 0 or time[-1] < 0:
-        time.pop()              # Remove the last element from time
-        amplitude.pop()
-        time.append(total_time)
-        amplitude.append(0)
+    time = [0, max_fraction_through * period/2, max_fraction_through * period/2 + period/2] # Create time points
+    count = 1
+    while count < n_saws:
+        time += [x + period for x in time[-2:]]
+        count += 1
+    time.append(total_time)
 
     # Plot the graph
     axs.plot(time, amplitude)

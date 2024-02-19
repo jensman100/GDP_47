@@ -13,7 +13,7 @@ import matplotlib.patches as patches
 
 ### Reading the flight mission cycle sheet
 print('Reading excel file...')
-file_location = r'C:\Users\joeh2\OneDrive - University of Southampton\Documents\Southampton\GDP\General - Small Joint Implant Testing Rig\11 - Code\GDP_47\Flight_Mission_Cycle.xlsx'
+file_location = r'C:\Users\joeh2\OneDrive - University of Southampton\Documents\Southampton\GDP\General - Small Joint Implant Testing Rig\11 - Code\GDP_47\Copy of Flight_Mission_Cycle.xlsx'
 try:
     excel = pd.ExcelFile(file_location)
 except:
@@ -25,7 +25,6 @@ try:
 except:
     print("ERROR: Mission cycle cannot be read. Please check the sheet names are formatted correctly and try again")
     exit()
-
 
 settings = list(mission_cycle.index) # Gathering setting names
 if len(settings) < 1:
@@ -60,8 +59,9 @@ for setting in settings:
 
                 fig.suptitle(f'{setting} settings', fontsize = 20) # adding title
 
-                force, ftime = plot_force_vs_time(df, axs['a'])
-                
+                plot_angle_visual(df, axs['c'])
+
+                force, ftime = plot_force_vs_time(df, axs['a'])                
                 fduration = max(ftime)
 
                 force = force * cycles
@@ -76,12 +76,12 @@ for setting in settings:
                 
                 force_history += force 
                 ftime_history += updated_ftime
-                ### *** CHANGE SO CONTINOUSLY GOES FROM 0 ***
+
                 angle, atime = plot_degree_vs_time(df, axs['b'])
 
                 aduration = max(atime)
-                plot_angle_visual(df, axs['c'])
                 angle = angle * cycles
+
                 updated_atime = [x + start_time for x in atime]
 
                 number_of_changes= len(atime)
@@ -90,7 +90,7 @@ for setting in settings:
                 while count < cycles:
                     updated_atime += [x + final_avalue + (count-1)* aduration for x in atime[-number_of_changes:]]
                     count += 1
-
+                
                 angle_history += angle
                 atime_history += updated_atime
                 
@@ -107,7 +107,7 @@ for setting in settings:
         print(f'Warning: {setting} sheet not found')
 
 ### Plotting mission cycle timeline
-print('Processing mission cycle...')
+print('Processing Mission Cycle...')
 fig, axs = plt.subplot_mosaic('''a
                             b
                             c''', figsize=(10, 8))
