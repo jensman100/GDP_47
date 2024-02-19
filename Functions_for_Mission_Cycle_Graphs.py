@@ -142,7 +142,10 @@ def plot_degree_vs_time(df, axs):
     amplitude.append(0) # Add the final point
     amplitude.insert(0, 0) # Add the first point
 
-    max_fraction_through = abs(max_rom/(max_rom - min_rom))
+    if max_rom == min_rom:
+        max_fraction_through = 0.5
+    else:
+        max_fraction_through = abs(max_rom/(max_rom - min_rom))
 
     time = [0, max_fraction_through * period/2, max_fraction_through * period/2 + period/2] # Create time points
     count = 1
@@ -203,12 +206,12 @@ def plot_timeline_dict(timing_dict,  end_time, axs):
         '''
     axs.set_ylim([-0.5, 1])            # setting y limits
     axs.set_yticks([])                 # removing y ticks
-    # for spine in axs.gca().spines.values():  # Remove the box around the outside of the plot
-    #     axs.set_visible(False)
-    # axs.set_xlim([-10, end_time  + 10]) # setting x limits
-    axs.set_title('Timeline') # adding title
-    axs.set_xlabel('Time (minutes)') # adding x label
-    # axs.subplots_adjust(top=0.6, bottom=0.3) # Adjusting the plot size
+    for spine in axs.spines.values():  # Remove the box around the outside of the plot
+        spine.set_visible(False)
+    axs.set_xlim([-10, end_time + 10])  # setting x limits
+    # axs.set_title('Timeline')  # adding title
+    axs.set_xlabel('Time (minutes)', fontsize = 15) # adding x label
+    axs.tick_params(axis='x', labelsize=15)
 
     # Plot each event as a colored section
     for key in timing_dict.keys():
@@ -216,7 +219,7 @@ def plot_timeline_dict(timing_dict,  end_time, axs):
         duration = timing_dict[key][0]
         center = start_time + duration/2
         axs.barh(y=0, height=1, width=duration, left=start_time, edgecolor='black', label = f'{key}')
-        axs.text(center, 0, f'{key}', ha='center', va='center', color='black')
+        axs.text(center, 0, f'{key}', ha='center', va='center', color='black', fontsize = 20)
 
 def plot_mission_force(time, force, axs):
     axs.plot(time, force, label = 'Force')

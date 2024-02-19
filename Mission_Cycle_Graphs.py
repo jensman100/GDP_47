@@ -13,7 +13,7 @@ import matplotlib.patches as patches
 
 ### Reading the flight mission cycle sheet
 print('Reading excel file...')
-file_location = r'C:\Users\joeh2\OneDrive - University of Southampton\Documents\Southampton\GDP\General - Small Joint Implant Testing Rig\11 - Code\GDP_47\Copy of Flight_Mission_Cycle.xlsx'
+file_location = r'C:\Users\joeh2\OneDrive - University of Southampton\Documents\Southampton\GDP\General - Small Joint Implant Testing Rig\11 - Code\GDP_47\Flight_Mission_Cycle.xlsx'
 try:
     excel = pd.ExcelFile(file_location)
 except:
@@ -60,7 +60,7 @@ for setting in settings:
                 fig.suptitle(f'{setting} settings', fontsize = 20) # adding title
 
                 plot_angle_visual(df, axs['c'])
-
+                # Add in setting to apply force when angle is above a certain value
                 force, ftime = plot_force_vs_time(df, axs['a'])                
                 fduration = max(ftime)
 
@@ -76,7 +76,7 @@ for setting in settings:
                 
                 force_history += force 
                 ftime_history += updated_ftime
-
+                # Add in setting for sinonodal angle
                 angle, atime = plot_degree_vs_time(df, axs['b'])
 
                 aduration = max(atime)
@@ -111,6 +111,7 @@ print('Processing Mission Cycle...')
 fig, axs = plt.subplot_mosaic('''a
                             b
                             c''', figsize=(10, 8))
+fig.suptitle('Flight Mission Cycle', fontsize = 20)
 plot_timeline_dict(timings, start_time, axs['a']) # Inputs are dictionary and final start and duration times
 plot_mission_force(ftime_history, force_history, axs['b'])
 plot_mission_angle(atime_history, angle_history, axs['c'])
