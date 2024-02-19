@@ -76,8 +76,8 @@ for setting in settings:
                 
                 force_history += force 
                 ftime_history += updated_ftime
-
-                angle, atime, n_saws = plot_degree_vs_time(df, axs['b'])
+                ### *** CHANGE SO CONTINOUSLY GOES FROM 0 ***
+                angle, atime = plot_degree_vs_time(df, axs['b'])
 
                 aduration = max(atime)
                 plot_angle_visual(df, axs['c'])
@@ -114,6 +114,7 @@ fig, axs = plt.subplot_mosaic('''a
 plot_timeline_dict(timings, start_time, axs['a']) # Inputs are dictionary and final start and duration times
 plot_mission_force(ftime_history, force_history, axs['b'])
 plot_mission_angle(atime_history, angle_history, axs['c'])
+fig.tight_layout()
 print('Displaying graphs...')
 plt.show()
 print('Complete.')
