@@ -13,7 +13,7 @@ import matplotlib.patches as patches
 
 ### Reading the flight mission cycle sheet
 print('Reading excel file...')
-file_location = r'C:\Users\joeh2\OneDrive - University of Southampton\Documents\Southampton\GDP\General - Small Joint Implant Testing Rig\11 - Code\GDP_47\Flight_Mission_Cycle.xlsx'
+file_location = 'Flight_Mission_Cycle.xlsx'
 try:
     excel = pd.ExcelFile(file_location)
 except:

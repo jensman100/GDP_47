@@ -1,0 +1,26 @@
+***Start script***
+This file has been modified
+There will be lines of code at the top which we don't want to change
+
+Then there will be some key variables to change below:
+key_variable = 100
+key_variable_2 = 200
+
+Then we will get to the main script running through each setting, this will be a variable length
+// Add mission cycle here
+Typing()
+Typing()
+Light switch()
+Light switch()
+Light switch()
+Light switch()
+Piano()
+Piano()
+Piano()
+Writing()
+Writing()
+Writing()
+Writing()
+
+
+***End script***

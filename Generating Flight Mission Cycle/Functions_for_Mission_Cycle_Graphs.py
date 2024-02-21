@@ -219,7 +219,7 @@ def plot_timeline_dict(timing_dict,  end_time, axs):
         duration = timing_dict[key][0]
         center = start_time + duration/2
         axs.barh(y=0, height=1, width=duration, left=start_time, edgecolor='black', label = f'{key}')
-        axs.text(center, 0, f'{key}', ha='center', va='center', color='black', fontsize = 20)
+        axs.text(center, 0, f'{key}', ha='center', va='center', color='black', fontsize = 15)
 
 def plot_mission_force(time, force, axs):
     axs.plot(time, force, label = 'Force')
