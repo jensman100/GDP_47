@@ -3,6 +3,8 @@ To use this code, you should first set up a python 9.12.1 environment and instal
 pandas
 matplotlib
 openpyex
+'''need to run - pip install -r requirements.txt, or conda install --file requirements.txt''' instead of doing all this^^
+
 
 You may then edit the excel file 'Read_Excel.xlsx' so that it include the cycle you require to be run in chronological order.
 
