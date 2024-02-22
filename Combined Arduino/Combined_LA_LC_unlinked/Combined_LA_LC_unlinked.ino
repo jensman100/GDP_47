@@ -1,5 +1,5 @@
 /****
- * COMBINED WHICH DOES LA AND LOAD CELL TOGETHER
+ * COMBINED WHICH DOES LA AND LOAD CELL
  */
 
 // Configuring Linear Actuator
@@ -16,11 +16,6 @@ CytronMD motor(PWM_DIR, 5, 4);  // PWM = Pin 5, DIR = Pin 4.
 HX711 scale;
 
 float calibration_factor = -7050; //-7050 worked for my 440lb max scale setup *** NEED TO FIND CALIBRATION FACTOR IN TSRL. CAN CHANGE TO FIXED VAIRABLE WHEN CONFIRMED *** 
-float f = 20; //intended force
-float s = 200; //LA speed
-float a = 1; //force accuracy
-float l; //load cell value
-
 
 void setup() {
 // Linear Actuator Set Up
@@ -48,10 +43,19 @@ void loop() {
   motor.setSpeed(100);  // Run forward at 25% speed.
   delay(1000);
   read_load_cell();
-  l = load_cell_value();
-  match_force(f, s, a, l);
-}
+  
+  motor.setSpeed(0);    // Stop.
+  delay(250);
+  read_load_cell();
 
+  motor.setSpeed(-100);  // Run backward at 25% speed.
+  delay(1000);
+  read_load_cell();
+
+  motor.setSpeed(0);    // Stop.
+  delay(250);
+  read_load_cell();
+}
 
 void read_load_cell(){
     scale.set_scale(calibration_factor); //Adjust to this calibration factor
@@ -70,28 +74,5 @@ void read_load_cell(){
       calibration_factor += 10;
     else if(temp == '-' || temp == 'z')
       calibration_factor -= 10;
-  }
-}
-
-int load_cell_value(){
-    scale.set_scale(calibration_factor); //Adjust to this calibration factor
-  return scale.get_units();
-}
-
-
-
-
-void match_force(float f, float s, float a, float l){
-  // a lovely bit of code which matches the force to a value f, moving the motor at a speed of s to an acceptable accuracy of a, the load cell reading is l
-  if (l<f+a & l>f-a){
-    delay(100);
-  }
-  
-  else if (l < f){
-    motor.setSpeed(s);
-  }
-
-  else if (l > f){
-    motor.setSpeed(-s);
   }
 }

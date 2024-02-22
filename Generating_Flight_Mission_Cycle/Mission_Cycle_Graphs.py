@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 ### Reading the flight mission cycle sheet
 print('Reading excel file...')
 file_location = 'Flight_Mission_Cycle.xlsx'
+
 try:
     excel = pd.ExcelFile(file_location)
 except:
