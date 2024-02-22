@@ -7,9 +7,9 @@ from Functions_for_Mission_Cycle_Graphs import *
 
 ### Importing Libraries
 import pandas as pd
-import numpy as np
+from Functions_for_Mission_Cycle_Graphs import plot_force_vs_time
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+
 
 ### Reading the flight mission cycle sheet
 print('Reading excel file...')
@@ -46,76 +46,78 @@ for setting in settings:
         # Reading setting sheet
         df = read_setting(file_location, setting)
         df, error = prepare_setting(df)
-
         if not error:
             # Data for timeline
             cycles = mission_cycle.loc[setting, 'No. of cycles']
-            if setting not in timings:
+            count_name = 0
+            while setting in timings:
+                setting = f'{setting}_repeat_{count_name}'
+            # Creating figure plot with mosaic
+            fig, axs = plt.subplot_mosaic('''   aaa
+                                                bbc''', figsize=(10, 8))
+            # a for force time graph, b for degree time graph, c for angle visual
 
-                # Creating figure plot with mosaic
-                fig, axs = plt.subplot_mosaic('''   aaa
-                                                    bbc''', figsize=(10, 8))
-                # a for force time graph, b for degree time graph, c for angle visual
+            fig.suptitle(f'{setting} settings', fontsize = 20) # adding title
+            # Plotting angle visual
+            plot_angle_visual(df, axs['c'])
 
-                fig.suptitle(f'{setting} settings', fontsize = 20) # adding title
+            # Plotting degree time graph
+            angle, atime = plot_degree_vs_time(df, axs['b'])
 
-                plot_angle_visual(df, axs['c'])
-                # Add in setting to apply force when angle is above a certain value
-                force, ftime = plot_force_vs_time(df, axs['a'])                
-                fduration = max(ftime)
+            aduration = max(atime)
+            total_angle = angle * cycles
 
-                force = force * cycles
-                updated_ftime = [x + start_time for x in ftime]
+            updated_atime = [x + start_time for x in atime]
 
-                number_of_changes = len(ftime)
-                count = 1
-                final_fvalue = updated_ftime[-1]
-                while count < cycles:
-                    updated_ftime += [x  + final_fvalue + (count-1) * fduration for x in ftime[-number_of_changes:]]
-                    count += 1
-                
-                force_history += force 
-                ftime_history += updated_ftime
-                # Add in setting for sinonodal angle
-                angle, atime = plot_degree_vs_time(df, axs['b'])
+            number_of_changes = len(atime)
+            count = 1
+            final_avalue = updated_atime[-1]
+            while count < cycles:
+                updated_atime += [x + final_avalue + (count-1) * aduration for x in atime[-number_of_changes:]]
+                count += 1
 
-                aduration = max(atime)
-                angle = angle * cycles
+            updated_angle = angle * cycles
+            angle_history += updated_angle
+            atime_history += updated_atime
 
-                updated_atime = [x + start_time for x in atime]
+            # Plotting force time graph
+            force, ftime = plot_force_vs_time(df, axs['a'])
+            fduration = max(ftime)
 
-                number_of_changes= len(atime)
-                count = 1
-                final_avalue = updated_atime[-1]
-                while count < cycles:
-                    updated_atime += [x + final_avalue + (count-1)* aduration for x in atime[-number_of_changes:]]
-                    count += 1
-                
-                angle_history += angle
-                atime_history += updated_atime
-                
-                duration_with_cycles = fduration * cycles
-                timings[setting] = [duration_with_cycles, start_time]
-                start_time += duration_with_cycles
+            force = force * cycles
+            updated_ftime = [x + start_time for x in ftime]
 
-            else:
-                print(f'ERROR: {setting} entered more than once. Please check the mission cycle and try again.')
-                exit()
+            number_of_changes = len(ftime)
+            count = 1
+            final_fvalue = updated_ftime[-1]
+            while count < cycles:
+                updated_ftime += [x  + final_fvalue + (count-1) * fduration for x in ftime[-number_of_changes:]]
+                count += 1
+            
+            force_history += force 
+            ftime_history += updated_ftime
+
+            duration_with_cycles = fduration * cycles
+            timings[setting] = [duration_with_cycles, start_time]
+            start_time += duration_with_cycles
+
+            
         else:
             print(f'ERROR: {setting} not processed due to error(s). See error message(s) above')
     else:
         print(f'Warning: {setting} sheet not found')
 
 ### Plotting mission cycle timeline
-print('Processing Mission Cycle...')
-fig, axs = plt.subplot_mosaic('''a
-                            b
-                            c''', figsize=(10, 8))
-fig.suptitle('Flight Mission Cycle', fontsize = 20)
-plot_timeline_dict(timings, start_time, axs['a']) # Inputs are dictionary and final start and duration times
-plot_mission_force(ftime_history, force_history, axs['b'])
-plot_mission_angle(atime_history, angle_history, axs['c'])
-fig.tight_layout()
-print('Displaying graphs...')
-plt.show()
-print('Complete.')
+if not error:
+    print('Processing Mission Cycle...')
+    fig, axs = plt.subplot_mosaic('''a
+                                b
+                                c''', figsize=(10, 8))
+    fig.suptitle('Flight Mission Cycle', fontsize = 20)
+    plot_timeline_dict(timings, start_time, axs['a']) # Inputs are dictionary and final start and duration times
+    plot_mission_force(ftime_history, force_history, axs['b'])
+    plot_mission_angle(atime_history, angle_history, axs['c'])
+    fig.tight_layout()
+    print('Displaying graphs...')
+    plt.show()
+    print('Complete.')
