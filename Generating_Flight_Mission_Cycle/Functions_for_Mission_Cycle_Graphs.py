@@ -114,17 +114,19 @@ def prepare_setting(df):
     
     return df, error
 
-def plot_force_vs_time(df, axs):
+def plot_force_vs_time(df, axs, plot):
     ''' This function takes a dataframe and plots the force vs time on a given axis.
         '''
     force_setting = df.loc['Type', 'Force']
     if force_setting == 'set_points':
         end_time = list(df['end_time'])[1:]
         force= list(df['Force'])[1:]
+            
+    if plot:
         axs.plot(end_time, force)
-    axs.set_xlabel('Time')
-    axs.set_ylabel('Force')
-    axs.set_title('Force vs Time')
+        axs.set_xlabel('Time')
+        axs.set_ylabel('Force')
+        axs.set_title('Force vs Time')
     return force, end_time
     
 def calcualte_roms_and_periods(df):
@@ -137,13 +139,9 @@ def calcualte_roms_and_periods(df):
     return max_rom, min_rom, period, total_time
     
 
-def plot_degree_vs_time(df, axs):
+def plot_degree_vs_time(df, axs, plot):
     ''' This function takes a dataframe and plots the degree vs time on a given axis.
         '''
-    axs.set_title('Angle vs Time')
-    axs.set_ylabel('Set Angle (Deg)')
-    axs.set_xlabel('Time (s)')
-    
     max_rom, min_rom, period, total_time = calcualte_roms_and_periods(df)
 
     if df.loc['Type', 'RoM'] == 'triangle':
@@ -153,9 +151,12 @@ def plot_degree_vs_time(df, axs):
     else:
         print('ERROR: RoM type not recognised. Please check the data.')
         exit()
-
-    # Plot the graph
-    axs.plot(time, angle)
+    if plot:
+        # Plot the graph
+        axs.plot(time, angle)
+        axs.set_title('Angle vs Time')
+        axs.set_ylabel('Set Angle (Deg)')
+        axs.set_xlabel('Time (s)')
     return list(angle), list(time)
 
 def triangle_angle(time, max_rom, min_rom, period, total_time):
@@ -230,6 +231,39 @@ def plot_angle_visual(df, axs):
     axs.axis('off')
     axs.set_aspect('equal')
     axs.set_title('Angle Visual')
+
+def update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history, atime_history):
+    aduration = max(atime)
+    updated_atime = [x + start_time for x in atime]
+
+    number_of_changes = len(atime)
+    count = 1
+    final_avalue = updated_atime[-1]
+    while count < cycles:
+        updated_atime += [x + final_avalue + (count-1) * aduration for x in atime[-number_of_changes:]]
+        count += 1
+
+    updated_angle = angle * cycles
+    angle_history += updated_angle
+    atime_history += updated_atime
+    return(angle_history, atime_history)
+
+def update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history):
+    fduration = max(ftime)
+
+    force = force * cycles
+    updated_ftime = [x + start_time for x in ftime]
+
+    number_of_changes = len(ftime)
+    count = 1
+    final_fvalue = updated_ftime[-1]
+    while count < cycles:
+        updated_ftime += [x  + final_fvalue + (count-1) * fduration for x in ftime[-number_of_changes:]]
+        count += 1
+    
+    force_history += force 
+    ftime_history += updated_ftime
+    return(force_history, ftime_history, fduration)
 
 def plot_timeline_dict(timing_dict,  end_time, axs):
     ''' This function takes a dictionary and plots a timeline of the mission cycle.

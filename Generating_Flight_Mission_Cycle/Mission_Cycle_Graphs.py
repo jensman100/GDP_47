@@ -7,7 +7,6 @@ from Functions_for_Mission_Cycle_Graphs import *
 
 ### Importing Libraries
 import pandas as pd
-from Functions_for_Mission_Cycle_Graphs import plot_force_vs_time
 import matplotlib.pyplot as plt
 
 
@@ -28,6 +27,10 @@ except:
     exit()
 
 settings = list(mission_cycle.index) # Gathering setting names
+# count the repetitions of each setting
+settings_repeats = mission_cycle.index.value_counts().to_dict()
+setting_counts = dict.fromkeys(mission_cycle.index, 0)
+        
 if len(settings) < 1:
     print('ERROR: No settings entered. Please enter a mission cycle and try again')
     exit()
@@ -48,55 +51,43 @@ for setting in settings:
         df = read_setting(file_location, setting)
         df, error = prepare_setting(df)
         if not error:
-            # Data for timeline
-            cycles = mission_cycle.loc[setting, 'No. of cycles']
-            count_name = 0
-            while setting in timings:
-                setting = f'{setting}_repeat_{count_name}'
-            # Creating figure plot with mosaic
-            fig, axs = plt.subplot_mosaic('''   aaa
-                                                bbc''', figsize=(10, 8))
-            # a for force time graph, b for degree time graph, c for angle visual
 
-            fig.suptitle(f'{setting} settings', fontsize = 20) # adding title
-            # Plotting angle visual
-            plot_angle_visual(df, axs['c'])
+            if settings_repeats[setting] > 1 and setting_counts[setting] != 0:
+                setting_repeat_no = setting_counts[setting]
+                cycles = list(mission_cycle.loc[setting, 'No. of cycles'])[setting_repeat_no]
+                setting_counts[setting] += 1
+                setting = f'{setting} (Repeat{setting_repeat_no})'
+                plot = False
+            elif settings_repeats[setting] > 1:
+                cycles = list(mission_cycle.loc[setting, 'No. of cycles'])[0]
+                setting_counts[setting] += 1
+                plot = True
+            else:
+                cycles = mission_cycle.loc[setting, 'No. of cycles']
+                setting_counts[setting] += 1
+                plot = True
+
+            # Creating figure plot with mosaic
+            if plot:
+                fig, axs = plt.subplot_mosaic('''   aaa
+                                                    bbc''', figsize=(10, 8))
+                # a for force time graph, b for degree time graph, c for angle visual
+
+                fig.suptitle(f'{setting} settings', fontsize = 20) # adding title
+                # Plotting angle visual
+                plot_angle_visual(df, axs['c'])
 
             # Plotting degree time graph
-            angle, atime = plot_degree_vs_time(df, axs['b'])
-
-            aduration = max(atime)
-            total_angle = angle * cycles
-
-            updated_atime = [x + start_time for x in atime]
-
-            number_of_changes = len(atime)
-            count = 1
-            final_avalue = updated_atime[-1]
-            while count < cycles:
-                updated_atime += [x + final_avalue + (count-1) * aduration for x in atime[-number_of_changes:]]
-                count += 1
-
-            updated_angle = angle * cycles
-            angle_history += updated_angle
-            atime_history += updated_atime
+            angle, atime = plot_degree_vs_time(df, axs['b'], plot)
+            
+            # Updating mission cycle with next angle settings
+            angle_history, angle_time = update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history, atime_history)
 
             # Plotting force time graph
-            force, ftime = plot_force_vs_time(df, axs['a'])
-            fduration = max(ftime)
+            force, ftime = plot_force_vs_time(df, axs['a'], plot)
 
-            force = force * cycles
-            updated_ftime = [x + start_time for x in ftime]
-
-            number_of_changes = len(ftime)
-            count = 1
-            final_fvalue = updated_ftime[-1]
-            while count < cycles:
-                updated_ftime += [x  + final_fvalue + (count-1) * fduration for x in ftime[-number_of_changes:]]
-                count += 1
-            
-            force_history += force 
-            ftime_history += updated_ftime
+            # Updating mission cycle with next force settings
+            force_history, force_time, fduration = update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history)
 
             duration_with_cycles = fduration * cycles
             timings[setting] = [duration_with_cycles, start_time]
