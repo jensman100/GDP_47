@@ -64,26 +64,27 @@ def prepare_setting(df):
     if df.loc['RoM', 'Type'] not in rom_settings:                                                    # If RoM type is not triangle or sinusoidal
         print('ERROR: RoM type is not correct. Please check the data.')
         error = True
+    force_type = df.loc['Force', 'Type']
+    if force_type == 'set_points':
+        if list(df.loc['Force'])[1] > 0 or list(df.loc['Force'])[1] < 0:                                        # If force is not zero at the start
+            print('Warning: Force is not zero at the start of the activity. Please check the data.')
+        if list(df.loc['Force'])[-1] > 0 or list(df.loc['Force'])[-1] < 0:                                      # If force is not zero at the end
+            print('Warning: Force is not zero at the end of the activity. Please check the data.')
+        if list(df.loc['Duration'])[1] > 0 or list(df.loc['Duration'])[1] < 0:                                  # If duration is not zero at the start
+            print('Warning: Duration is not zero at the start of the activity. Please check the data.')
 
-    if list(df.loc['Force'])[1] > 0 or list(df.loc['Force'])[1] < 0:                                        # If force is not zero at the start
-        print('Warning: Force is not zero at the start of the activity. Please check the data.')
-    if list(df.loc['Force'])[-1] > 0 or list(df.loc['Force'])[-1] < 0:                                      # If force is not zero at the end
-        print('Warning: Force is not zero at the end of the activity. Please check the data.')
-    if list(df.loc['Duration'])[1] > 0 or list(df.loc['Duration'])[1] < 0:                                  # If duration is not zero at the start
-        print('Warning: Duration is not zero at the start of the activity. Please check the data.')
-
-    if len(list(df.loc['Force'])) < 2:                                                                  # If there are less than 2 data points
-        print('ERROR: Less than 2 force data points. Please check the data.')
-        error = True
-    if df.loc['Force'].isna().sum() != df.loc['Duration'].isna().sum() -1:                                         # If force and duration are not the same length
-        print('ERROR: Force and Duration are not the same length. Please check the data.')
-        error = True
-    if np.isnan(list(df.loc['Force'])[1]):                                                                  # If there is no data in the force column
-        print('ERROR: No data in the force column. Please check the data.')
-        error = True
-    if np.isnan(list(df.loc['Duration'])[1]):                                                               # If there is no data in the duration column
-        print('ERROR: No data in the duration column. Please check the data.')
-        error = True
+        if len(list(df.loc['Force'])) < 2:                                                                  # If there are less than 2 data points
+            print('ERROR: Less than 2 force data points. Please check the data.')
+            error = True
+        if df.loc['Force'].isna().sum() != df.loc['Duration'].isna().sum() -1:                                         # If force and duration are not the same length
+            print('ERROR: Force and Duration are not the same length. Please check the data.')
+            error = True
+        if np.isnan(list(df.loc['Force'])[1]):                                                                  # If there is no data in the force column
+            print('ERROR: No data in the force column. Please check the data.')
+            error = True
+        if np.isnan(list(df.loc['Duration'])[1]):                                                               # If there is no data in the duration column
+            print('ERROR: No data in the duration column. Please check the data.')
+            error = True
                                                           
     if np.isnan(list(df.loc['Max_RoM'])[1]):                                                               # If no Max_RoM value is entered
         print('ERROR: No Max_RoM entered. Please check the data.')
@@ -109,25 +110,53 @@ def prepare_setting(df):
         
         # Calculating end time
         df.loc['end_time'] = df.loc['Duration'].cumsum()
-
     df= df.transpose()
     
     return df, error
 
-def plot_force_vs_time(df, axs, plot):
+def plot_force_vs_time(df, axs, plot, angle, atime):
     ''' This function takes a dataframe and plots the force vs time on a given axis.
         '''
     force_setting = df.loc['Type', 'Force']
+    # If force type is set_points
     if force_setting == 'set_points':
+        force = list(df['Force'])[1:]
         end_time = list(df['end_time'])[1:]
-        force= list(df['Force'])[1:]
+        saved_end_time = []
+        saved_force = []
+        for i in range(len(end_time)-1):
+            current_end_time = np.linspace(end_time[i], end_time[i+1], 50)
+            current_force = np.linspace(force[i], force[i+1], 50)
+            saved_end_time.extend(current_end_time.tolist())
+            saved_force.extend(current_force.tolist())
+
+        end_time = saved_end_time
+        force = saved_force
+
+    elif force_setting == 'angle_dependent':
+        angle_instruction = list(df['Force'])[1]
+        operator = angle_instruction[0]
+        angle_causing_change = float(angle_instruction[1:])
+        force = np.zeros(len(atime))
+        set_force = list(df['Force'])[2]
+        if operator == '>':
+            for i in range(len(atime)):
+                if angle[i] > angle_causing_change:
+                    force[i] = set_force
+        if operator == '<':
+            for i in range(len(atime)):
+                if angle[i] < angle_causing_change:
+                    force[i] = set_force
+
+        end_time = atime    
             
     if plot:
         axs.plot(end_time, force)
         axs.set_xlabel('Time')
         axs.set_ylabel('Force')
         axs.set_title('Force vs Time')
-    return force, end_time
+
+    return list(force), end_time
     
 def calcualte_roms_and_periods(df):
     ''' This function takes a dataframe and calculates the max and min RoM and the period of the activity.
@@ -135,7 +164,10 @@ def calcualte_roms_and_periods(df):
     max_rom = df.loc['Unnamed: 2', 'Max_RoM']
     min_rom = df.loc['Unnamed: 2', 'Min_RoM']
     period = df.loc['Unnamed: 2', 'Period']
-    total_time = list(df['end_time'])[-1]
+    if df.loc['Type', 'Force'] == 'set_points':
+        total_time = list(df['end_time'])[-1]
+    elif df.loc['Type', 'Force'] == 'angle_dependent':
+        total_time = df.loc['Unnamed: 2', 'end_time']
     return max_rom, min_rom, period, total_time
     
 
@@ -182,7 +214,15 @@ def triangle_angle(time, max_rom, min_rom, period, total_time):
             time += [x + period for x in time[-2:]]
             count += 1
         time.append(total_time)
-        return angle, time
+
+        saved_time = []
+        saved_angle = []
+
+        for i in range(len(time)-1):
+            saved_time.extend(np.linspace(time[i], time[i+1], num=20))
+            saved_angle.extend(np.linspace(angle[i], angle[i+1], num=20))
+
+        return saved_angle, saved_time
 
 def sinonisoidal_angle(time, max_rom, min_rom, period, total_time):
         time = np.linspace(0, total_time, 100)

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 
 ### Reading the flight mission cycle sheet
-print('Reading excel file...')
+print('Reading Excel File...')
 file_location = 'Flight_Mission_Cycle.xlsx'
 
 try:
@@ -84,7 +84,7 @@ for setting in settings:
             angle_history, angle_time = update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history, atime_history)
 
             # Plotting force time graph
-            force, ftime = plot_force_vs_time(df, axs['a'], plot)
+            force, ftime = plot_force_vs_time(df, axs['a'], plot, angle, atime)
 
             # Updating mission cycle with next force settings
             force_history, force_time, fduration = update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history)
@@ -110,6 +110,6 @@ if not error:
     plot_mission_force(ftime_history, force_history, axs['b'])
     plot_mission_angle(atime_history, angle_history, axs['c'])
     fig.tight_layout()
-    print('Displaying graphs...')
+    print('Displaying Graphs...')
     plt.show()
     print('Complete.')
