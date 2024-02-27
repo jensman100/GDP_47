@@ -183,6 +183,7 @@ def plot_degree_vs_time(df, axs, plot):
     else:
         print('ERROR: RoM type not recognised. Please check the data.')
         exit()
+
     if plot:
         # Plot the graph
         axs.plot(time, angle)
@@ -199,16 +200,29 @@ def triangle_angle(time, max_rom, min_rom, period, total_time):
             print('ERROR: Period does not divide total time. Please check the data.')
 
         # Plotting Angle vs Time
-        angle = [max_rom, min_rom] * n_saws # Create points to plot
-        angle.append(0) # Add the final point
-        angle.insert(0, 0) # Add the first point
+        if min_rom > 0:
+            intial_angle = [min_rom, max_rom, min_rom]
+            additional_angle = [max_rom, min_rom] * (n_saws -1)
+            angle = intial_angle + additional_angle
+        elif max_rom < 0:
+            intial_angle = [max_rom, min_rom, max_rom]
+            additional_angle = [min_rom, max_rom] * (n_saws -1)
+            angle = intial_angle + additional_angle
+        else:
+            angle = [max_rom, min_rom] * n_saws # Create points to plot
+            angle.append(0) # Add the final point
+            angle.insert(0, 0) # Add the first point
 
         if max_rom == min_rom:
             max_fraction_through = 0.5
         else:
             max_fraction_through = abs(max_rom/(max_rom - min_rom))
-
-        time = [0, max_fraction_through * period/2, max_fraction_through * period/2 + period/2] # Create time points
+        
+        if min_rom > 0 or max_rom < 0:
+            time = [0, period/2] # Create time points
+        else:
+            time = [0, max_fraction_through * period/2, max_fraction_through * period/2 + period/2] # Create time points
+        
         count = 1
         while count < n_saws:
             time += [x + period for x in time[-2:]]
@@ -228,7 +242,10 @@ def sinonisoidal_angle(time, max_rom, min_rom, period, total_time):
         time = np.linspace(0, total_time, 100)
         amplitude = (max_rom - min_rom)/2
         y_offset = (max_rom + min_rom)/2
-        x_offset =np.arcsin(-y_offset/amplitude)
+        if max_rom < 0 or min_rom > 0 or amplitude == 0:
+            x_offset = 0
+        else:
+            x_offset =np.arcsin(-y_offset/amplitude)
         angle = amplitude * np.sin(2 * np.pi * time/period + x_offset) + y_offset
         return angle, time
 
@@ -272,7 +289,8 @@ def plot_angle_visual(df, axs):
     axs.set_aspect('equal')
     axs.set_title('Angle Visual')
 
-def update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history, atime_history):
+def update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history, atime_history, total_time, max_rom_0, min_rom_0):
+    length = len(atime) * cycles
     aduration = max(atime)
     updated_atime = [x + start_time for x in atime]
 
@@ -286,10 +304,27 @@ def update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history,
     updated_angle = angle * cycles
     angle_history += updated_angle
     atime_history += updated_atime
+
+    if max_rom_0:
+        atime_history[-length:] = [time + 3 for time in atime_history[-length:]]
+        angle_history.insert(-length, 0)
+        angle_history.append(0)
+        atime_history.insert(-length, start_time)
+        atime_history.append(start_time + total_time * cycles + 6)
+    
+    elif min_rom_0:
+        atime_history[-length:] = [time + 3 for time in atime_history[-length:]]
+        angle_history.insert(-length, 0)
+        angle_history.append(0)
+        atime_history.insert(-length, start_time)
+        atime_history.append(start_time + total_time * cycles + 6)
+    
     return(angle_history, atime_history)
 
-def update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history):
+def update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history, total_time, max_rom_0, min_rom_0):
+    length = len(ftime) * cycles
     fduration = max(ftime)
+    duration_with_cycles = fduration * cycles
 
     force = force * cycles
     updated_ftime = [x + start_time for x in ftime]
@@ -303,7 +338,26 @@ def update_mission_cycle_forces(ftime, force, cycles, start_time, force_history,
     
     force_history += force 
     ftime_history += updated_ftime
-    return(force_history, ftime_history, fduration)
+
+    if max_rom_0:
+        ftime_history[-length:] = [time + 3 for time in ftime_history[-length:]]
+        force_history.insert(-length, 0)
+        force_history.append(0)
+        ftime_history.insert(-length, start_time)
+        ftime_history.append(start_time + total_time * cycles + 6)
+
+        duration_with_cycles += 6
+
+    elif min_rom_0:
+        ftime_history[-length:] = [time + 3 for time in ftime_history[-length:]]
+        force_history.insert(-length, 0)
+        force_history.append(0)
+        ftime_history.insert(-length, start_time)
+        ftime_history.append(start_time + total_time * cycles + 6)
+
+        duration_with_cycles += 6
+    
+    return(force_history, ftime_history, duration_with_cycles)
 
 def plot_timeline_dict(timing_dict,  end_time, axs):
     ''' This function takes a dictionary and plots a timeline of the mission cycle.

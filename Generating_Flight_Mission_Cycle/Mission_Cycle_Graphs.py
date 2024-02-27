@@ -79,21 +79,29 @@ for setting in settings:
 
             # Plotting degree time graph
             angle, atime = plot_degree_vs_time(df, axs['b'], plot)
-            
-            # Updating mission cycle with next angle settings
-            angle_history, angle_time = update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history, atime_history)
 
             # Plotting force time graph
             force, ftime = plot_force_vs_time(df, axs['a'], plot, angle, atime)
 
-            # Updating mission cycle with next force settings
-            force_history, force_time, fduration = update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history)
+            max_rom, min_rom, period, total_time = calcualte_roms_and_periods(df)
+            max_rom_0 = False
+            min_rom_0 = False
+            if max_rom < 0:
+                max_rom_0 = True
 
-            duration_with_cycles = fduration * cycles
+            if min_rom > 0:
+                min_rom_0 = True
+
+            # Updating mission cycle with next angle settings
+            angle_history, atime_history = update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history, atime_history, total_time, max_rom_0, min_rom_0)
+
+            # Updating mission cycle with next force settings
+            force_history, ftime_history, duration_with_cycles = update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history, total_time, max_rom_0, min_rom_0)
+
+            # Updating timings dictionary
             timings[setting] = [duration_with_cycles, start_time]
             start_time += duration_with_cycles
 
-            
         else:
             print(f'ERROR: {setting} not processed due to error(s). See error message(s) above')
     else:
