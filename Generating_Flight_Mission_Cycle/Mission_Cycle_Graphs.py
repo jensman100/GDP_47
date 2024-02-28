@@ -50,8 +50,8 @@ for setting in settings:
         # Reading setting sheet
         df = read_setting(file_location, setting)
         df, error = prepare_setting(df)
-        if not error:
 
+        if not error:
             if settings_repeats[setting] > 1 and setting_counts[setting] != 0:
                 setting_repeat_no = setting_counts[setting]
                 cycles = list(mission_cycle.loc[setting, 'No. of cycles'])[setting_repeat_no]
@@ -88,7 +88,6 @@ for setting in settings:
             min_rom_0 = False
             if max_rom < 0:
                 max_rom_0 = True
-
             if min_rom > 0:
                 min_rom_0 = True
 
@@ -99,7 +98,7 @@ for setting in settings:
             force_history, ftime_history, duration_with_cycles = update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history, total_time, max_rom_0, min_rom_0)
 
             # Updating timings dictionary
-            timings[setting] = [duration_with_cycles, start_time]
+            timings[setting] = [duration_with_cycles, start_time, cycles]
             start_time += duration_with_cycles
 
         else:
@@ -119,5 +118,9 @@ if not error:
     plot_mission_angle(atime_history, angle_history, axs['c'])
     fig.tight_layout()
     print('Displaying Graphs...')
-    plt.show()
+    # plt.show()
+
+### Writing to Excel
+    print('Writing to Excel...')
+    writing_to_excel(ftime_history, force_history, angle_history, timings, 'output.xlsx')
     print('Complete.')

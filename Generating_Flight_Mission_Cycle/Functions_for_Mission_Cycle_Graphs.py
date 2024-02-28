@@ -393,3 +393,16 @@ def plot_mission_angle(time, angle, axs):
     axs.set_xlabel('Time')
     axs.set_ylabel('Angle (deg)')
     axs.set_xlim(0)
+
+def writing_to_excel(time, force_history, angle_history, timings, excel_file_name):
+    # Create new data frame
+    values_dict = {'Time': time, 'Force': force_history, 'Angle': angle_history}
+    values_df = pd.DataFrame(values_dict)
+    values_df = values_df.set_index('Time')
+
+    settings_df = pd.DataFrame(timings)
+    settings_df.index = ['Duration', 'Start Time', 'No. of cycles']  # Set header names
+
+    with pd.ExcelWriter(excel_file_name) as excel_writer:
+        values_df.to_excel(excel_writer, sheet_name='Values')
+        settings_df.to_excel(excel_writer, sheet_name='Settings')
