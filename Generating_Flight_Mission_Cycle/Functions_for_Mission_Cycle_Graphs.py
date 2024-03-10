@@ -114,7 +114,7 @@ def prepare_setting(df):
     
     return df, error
 
-def plot_force_vs_time(df, axs, plot, angle, atime):
+def plot_force_vs_time(df, axs, plot, angle, time):
     ''' This function takes a dataframe and plots the force vs time on a given axis.
         '''
     force_setting = df.loc['Type', 'Force']
@@ -149,26 +149,24 @@ def plot_force_vs_time(df, axs, plot, angle, atime):
         angle_instruction = list(df['Force'])[1]
         operator = angle_instruction[0]
         angle_causing_change = float(angle_instruction[1:])
-        force = np.zeros(len(atime))
+        force = np.zeros(len(time))
         set_force = list(df['Force'])[2]
         if operator == '>':
-            for i in range(len(atime)):
+            for i in range(len(time)):
                 if angle[i] > angle_causing_change:
                     force[i] = set_force
         if operator == '<':
-            for i in range(len(atime)):
+            for i in range(len(time)):
                 if angle[i] < angle_causing_change:
                     force[i] = set_force
-
-        end_time = atime    
             
     if plot:
-        axs.plot(end_time, force)
+        axs.plot(time, force)
         axs.set_xlabel('Time')
         axs.set_ylabel('Force')
         axs.set_title('Force vs Time')
 
-    return list(force), end_time
+    return list(force)
     
 def calcualte_roms_and_periods(df):
     ''' This function takes a dataframe and calculates the max and min RoM and the period of the activity.
@@ -339,24 +337,14 @@ def update_mission_cycle_forces(ftime, force, cycles, start_time, force_history,
     duration_with_cycles = fduration * cycles
 
     force = force * cycles
-    updated_ftime = [x + start_time for x in ftime]
-
-    number_of_changes = len(ftime)
-    count = 1
-    final_fvalue = updated_ftime[-1]
-    while count < cycles:
-        updated_ftime += [x  + final_fvalue + (count-1) * fduration for x in ftime[-number_of_changes:]]
-        count += 1
     
     force_history += force 
-    ftime_history += updated_ftime
+    # ftime_history += updated_ftime
 
     if max_rom_0:
         ftime_history[-length:] = [time + 3 for time in ftime_history[-length:]]
         force_history.insert(-length, 0)
         force_history.append(0)
-        ftime_history.insert(-length, start_time)
-        ftime_history.append(start_time + total_time * cycles + 6)
 
         duration_with_cycles += 6
 
@@ -364,12 +352,10 @@ def update_mission_cycle_forces(ftime, force, cycles, start_time, force_history,
         ftime_history[-length:] = [time + 3 for time in ftime_history[-length:]]
         force_history.insert(-length, 0)
         force_history.append(0)
-        ftime_history.insert(-length, start_time)
-        ftime_history.append(start_time + total_time * cycles + 6)
 
         duration_with_cycles += 6
     
-    return(force_history, ftime_history, int(duration_with_cycles))
+    return(force_history, int(duration_with_cycles))
 
 def plot_timeline_dict(timing_dict,  end_time, axs):
     ''' This function takes a dictionary and plots a timeline of the mission cycle.
@@ -487,3 +473,17 @@ def test_roms(df):
     if min_rom > 0:
         min_rom_0 = True
     return max_rom_0, min_rom_0, total_time
+
+def mission_cycle_graphs(timings, start_time, time_history, force_history, angle_history):
+    ''' This function takes an excel file and processes the mission cycle sheets.
+        '''
+    fig, axs = plt.subplot_mosaic('''a
+                                b
+                                c''', figsize=(10, 8))
+    fig.suptitle('Flight Mission Cycle', fontsize = 20)
+    plot_timeline_dict(timings, start_time, axs['a']) # Inputs are dictionary and final start and duration times
+    plot_mission_force(time_history, force_history, axs['b'])
+    plot_mission_angle(time_history, angle_history, axs['c'])
+    fig.tight_layout()
+    print('Displaying Graphs...')
+    plt.show()

@@ -40,8 +40,7 @@ timings = {} # Create a dictionary to store the start_time, duration of each set
 # {key: [duration, start_time, cycles]}
 force_history = [] # Create a list to store the force history
 angle_history = [] # Create a list to store the angle history
-ftime_history = [] # Create a list to store the force time history
-atime_history = [] # Create a list to store the angle time history
+time_history = [] # Create a list to store the force time history
 start_time = 0
 
 for setting in settings:
@@ -67,8 +66,7 @@ for setting in settings:
         fms_times = list(force_angle_sheet['Time'] + start_time)
         force_history += list(force_angle_sheet['Force'])
         angle_history += list(force_angle_sheet['Angle'])
-        ftime_history += fms_times
-        atime_history += fms_times
+        time_history += fms_times
 
         # Update timings dictionary
         settings_sheet.loc['Start Time', :] += start_time
@@ -90,19 +88,19 @@ for setting in settings:
             # Test if plotting, if true create an set of axes
             axsb, axsa = test_if_plot(plot, setting, df)
             # Plotting degree time graph
-            angle, atime = plot_degree_vs_time(df, axsb, plot)
+            angle, time = plot_degree_vs_time(df, axsb, plot)
 
             # Plotting force time graph
-            force, ftime = plot_force_vs_time(df, axsa, plot, angle, atime)
+            force = plot_force_vs_time(df, axsa, plot, angle, time)
 
             # Test which side of 0 the max and min RoM are
             max_rom_0, min_rom_0, total_time = test_roms(df)
 
             # Updating mission cycle with next angle settings
-            angle_history, atime_history = update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history, atime_history, total_time, max_rom_0, min_rom_0)
+            angle_history, time_history = update_mission_cycle_angles(time, angle, cycles, start_time, angle_history, time_history, total_time, max_rom_0, min_rom_0)
 
             # Updating mission cycle with next force settings
-            force_history, ftime_history, duration_with_cycles = update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history, total_time, max_rom_0, min_rom_0)
+            force_history, duration_with_cycles = update_mission_cycle_forces(time, force, cycles, start_time, force_history, time_history, total_time, max_rom_0, min_rom_0)
 
             timings[setting] = [duration_with_cycles, start_time, cycles]
             start_time += duration_with_cycles
@@ -111,21 +109,15 @@ for setting in settings:
     else:
         print(f'Warning: {setting} sheet not found')
 
-### Plotting mission cycle timeline
+
 if not error:
+### Plotting mission cycle timeline
     print('Processing Mission Cycle...')
-    fig, axs = plt.subplot_mosaic('''a
-                                b
-                                c''', figsize=(10, 8))
-    fig.suptitle('Flight Mission Cycle', fontsize = 20)
-    plot_timeline_dict(timings, start_time, axs['a']) # Inputs are dictionary and final start and duration times
-    plot_mission_force(ftime_history, force_history, axs['b'])
-    plot_mission_angle(atime_history, angle_history, axs['c'])
-    fig.tight_layout()
-    print('Displaying Graphs...')
-    plt.show()
+    mission_cycle_graphs(timings, start_time, time_history, force_history, angle_history)
 
 ### Writing to Excel
     print('Writing to Excel...')
-    writing_to_excel(ftime_history, force_history, angle_history, timings, 'output.xlsx')
+    writing_to_excel(time_history, force_history, angle_history, timings, 'output.xlsx')
+
+### Complete
     print('Complete.')
