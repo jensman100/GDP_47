@@ -124,11 +124,23 @@ def plot_force_vs_time(df, axs, plot, angle, atime):
         end_time = list(df['end_time'])[1:]
         saved_end_time = []
         saved_force = []
+        total_time = end_time[-1]-end_time[0]
+
         for i in range(len(end_time)-1):
-            current_end_time = np.linspace(end_time[i], end_time[i+1], 50)
-            current_force = np.linspace(force[i], force[i+1], 50)
+            interval_time = end_time[i+1] - end_time[i]
+            num_points = int(len(angle) * interval_time / total_time)
+            current_end_time = np.linspace(end_time[i], end_time[i+1], num_points)
+            current_force = np.linspace(force[i], force[i+1], num_points)
             saved_end_time.extend(current_end_time.tolist())
             saved_force.extend(current_force.tolist())
+
+        # If there are any remaining points due to rounding, add them to the last interval
+        remaining_points = len(angle) - len(saved_end_time)
+        if remaining_points > 0:
+            last_end_time = np.linspace(end_time[-1], end_time[-1], remaining_points)
+            last_force = np.linspace(force[-1], force[-1], remaining_points)
+            saved_end_time.extend(last_end_time.tolist())
+            saved_force.extend(last_force.tolist())
 
         end_time = saved_end_time
         force = saved_force
@@ -357,7 +369,7 @@ def update_mission_cycle_forces(ftime, force, cycles, start_time, force_history,
 
         duration_with_cycles += 6
     
-    return(force_history, ftime_history, duration_with_cycles)
+    return(force_history, ftime_history, int(duration_with_cycles))
 
 def plot_timeline_dict(timing_dict,  end_time, axs):
     ''' This function takes a dictionary and plots a timeline of the mission cycle.
@@ -406,3 +418,72 @@ def writing_to_excel(time, force_history, angle_history, timings, excel_file_nam
     with pd.ExcelWriter(excel_file_name) as excel_writer:
         values_df.to_excel(excel_writer, sheet_name='Values')
         settings_df.to_excel(excel_writer, sheet_name='Settings')
+
+def process_setting(timings, setting, settings_repeats, setting_counts, mission_cycle, df, start_time, force_history, angle_history, ftime_history, atime_history):
+    cycles, setting, plot = test_in_settings(settings_repeats, setting, setting_counts, mission_cycle)
+    # Test if plotting, if true create an set of axes
+    axsb, axsa = test_if_plot(plot, setting, df)
+    # Plotting degree time graph
+    angle, atime = plot_degree_vs_time(df, axsb, plot)
+
+    # Plotting force time graph
+    force, ftime = plot_force_vs_time(df, axsa, plot, angle, atime)
+
+    # Test which side of 0 the max and min RoM are
+    max_rom_0, min_rom_0, total_time = test_roms(df)
+
+    # Updating mission cycle with next angle settings
+    angle_history, atime_history = update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history, atime_history, total_time, max_rom_0, min_rom_0)
+
+    # Updating mission cycle with next force settings
+    force_history, ftime_history, duration_with_cycles = update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history, total_time, max_rom_0, min_rom_0)
+
+    timings[setting] = [duration_with_cycles, start_time, cycles]
+    start_time += duration_with_cycles
+    return angle_history, atime_history, force_history, ftime_history, duration_with_cycles, cycles, timings, start_time
+
+def test_in_settings(settings_repeats, setting, setting_counts, mission_cycle):
+    if settings_repeats[setting] > 1 and setting_counts[setting] != 0:
+        setting_repeat_no = setting_counts[setting]
+        cycles = list(mission_cycle.loc[setting, 'No. of cycles'])[setting_repeat_no]
+        setting_counts[setting] += 1
+        setting = f'{setting} \n (Repeat{setting_repeat_no})'
+        plot = False
+    elif settings_repeats[setting] > 1:
+        cycles = list(mission_cycle.loc[setting, 'No. of cycles'])[0]
+        setting_counts[setting] += 1
+        plot = True
+    else:
+        cycles = mission_cycle.loc[setting, 'No. of cycles']
+        setting_counts[setting] += 1
+        plot = True
+    
+    return int(cycles), setting, plot
+
+def test_if_plot(plot, setting, df):
+        # Creating figure plot with mosaic
+    if plot:
+        fig, axs = plt.subplot_mosaic('''   aaa
+                                            bbc''', figsize=(10, 8))
+        # a for force time graph, b for degree time graph, c for angle visual
+
+        fig.suptitle(f'{setting} settings', fontsize = 20) # adding title
+        # Plotting angle visual
+        plot_angle_visual(df, axs['c'])
+        axsb = axs['b']
+        axsa = axs['a']
+
+    else :
+        axsb = None
+        axsa = None
+    return axsb, axsa
+
+def test_roms(df):
+    max_rom, min_rom, period, total_time = calcualte_roms_and_periods(df)
+    max_rom_0 = False
+    min_rom_0 = False
+    if max_rom < 0:
+        max_rom_0 = True
+    if min_rom > 0:
+        min_rom_0 = True
+    return max_rom_0, min_rom_0, total_time
