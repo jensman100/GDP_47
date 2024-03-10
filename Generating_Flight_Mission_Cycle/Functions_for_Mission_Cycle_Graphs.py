@@ -487,3 +487,44 @@ def mission_cycle_graphs(timings, start_time, time_history, force_history, angle
     fig.tight_layout()
     print('Displaying Graphs...')
     plt.show()
+
+def previous_mission_cycle_name(settings_repeats, setting_counts, setting):
+    if settings_repeats[setting] == 1:
+        settings_repeats.pop(setting)
+        setting_counts.pop(setting)
+        addon = '_0'
+    else:
+        addon = f'_{settings_repeats[setting]}'
+        settings_repeats[setting] -= 1
+
+    fms_name = f'{setting[5:]}'
+    fms_file_name = fms_name + '.xlsx'
+    return fms_file_name, addon, settings_repeats, setting_counts
+
+def read_previous_mission_cycle(file_name):
+    try:
+        force_angle_sheet = pd.read_excel(file_name, sheet_name='Values', index_col=None, header=0)
+        settings_sheet = pd.read_excel(file_name, sheet_name='Settings', index_col=0, header=0)
+        error = False
+    except:
+        print('ERROR: File cannot be opened. Please check the file location and whether it is open and try again.')
+        error = True
+        force_angle_sheet = None
+        settings_sheet = None
+
+    return force_angle_sheet, settings_sheet, error
+
+def combining_mission_cyles(force_angle_sheet, start_time, settings_sheet, addon, timings, force_history, angle_history, time_history):
+    fms_times = list(force_angle_sheet['Time'] + start_time)
+    force_history += list(force_angle_sheet['Force'])
+    angle_history += list(force_angle_sheet['Angle'])
+    time_history += fms_times
+
+    # Update timings dictionary
+    settings_sheet.loc['Start Time', :] += start_time
+    fms_settings = list(settings_sheet.columns)
+    for fms_setting in fms_settings:
+        new_fms_setting = fms_setting + addon
+        timings[new_fms_setting] = [settings_sheet.loc[ 'Duration', fms_setting], settings_sheet.loc['Start Time', fms_setting], settings_sheet.loc['No. of cycles', fms_setting]]
+    start_time = fms_times[-1]
+    return force_history, angle_history, time_history, start_time, timings
