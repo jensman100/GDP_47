@@ -249,7 +249,7 @@ def triangle_angle(time, max_rom, min_rom, period, total_time):
         return saved_angle, saved_time
 
 def sinonisoidal_angle(time, max_rom, min_rom, period, total_time):
-        time = np.linspace(0, total_time, 100)
+        time = np.linspace(0, total_time, 50)
         amplitude = (max_rom - min_rom)/2
         y_offset = (max_rom + min_rom)/2
         if max_rom < 0 or min_rom > 0 or amplitude == 0:
