@@ -1,4 +1,5 @@
 {
     "board": "arduino:avr:uno",
-    "sketch": "Combined Arduino\\Combined_LA_LC\\Combined_LA_LC.ino"
+    "sketch": "Combined Arduino\\Combined_LA_LC\\Combined_LA_LC.ino",
+    "port": "COM3"
 }

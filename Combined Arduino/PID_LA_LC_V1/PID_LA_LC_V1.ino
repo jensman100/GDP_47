@@ -17,9 +17,25 @@ HX711 scale;
 
 float calibration_factor = -7050; //-7050 worked for my 440lb max scale setup *** NEED TO FIND CALIBRATION FACTOR IN TSRL. CAN CHANGE TO FIXED VAIRABLE WHEN CONFIRMED *** 
 float f = 20; //intended force
-float s = 200; //LA speed
-float a = 5; //force accuracy
 float l; //load cell value
+
+
+
+//////////////////////////  PID CONTROL VALUE //////////////////////////
+
+#include <PID_v1.h>
+
+// Define Variables
+double Setpoint, Input, Output;
+double aggKp = 4, aggKi = 0.2, aggKd = 1;
+double consKp = 1, consKi = 0.05, consKd = 0.25;
+double max_speed = 150; // Maximum speed the motor can be set to
+double deadband = 5; // Size of the deadband around the setpoint
+
+// Specify the links and initial tuning parameters
+PID myPID(&Input, &Output, &Setpoint, consKp, consKi, consKd, DIRECT);
+
+
 
 
 void setup() {
@@ -47,10 +63,12 @@ void setup() {
 void loop() {
   //read_load_cell();
   l = load_cell_value();
-  match_force(f, s, a, l);
+  match_force(f, max_speed, deadband, l);
   Serial.print(f);
   Serial.print("   ");
-  Serial.println(l);
+  Serial.print(l);
+  Serial.print("    ");
+  Serial.println(Output); //dont know if this works
 }
 
 
@@ -82,23 +100,22 @@ int load_cell_value(){
 
 
 
-void match_force(float f, float s, float a, float l){
-  // a lovely bit of code which matches the force to a value f, moving the motor at a speed of s to an acceptable accuracy of a, the load cell reading is l
-  float upper = f+a;
-  float lower = f-a;
-  float forward = s;
-  float reverse = -s;
-  
-  if (l > lower && l < upper) {
-    motor.setSpeed(0);
-    delay(1000);
-  }
-  
-  else if (l < upper){
-    motor.setSpeed(forward);
+void match_force(float f, double max_speed, double deadband, float l) {
+  double error = f - l;
+
+  Setpoint = f;
+  Input = l;
+
+  double gap = abs(f - l);
+  if (gap < deadband) {
+    myPID.SetTunings(consKp, consKi, consKd);
+  } else {
+    myPID.SetTunings(aggKp, aggKi, aggKd);
+    // Change sign of the output when outside the deadband
+    Output = -Output;  
   }
 
-  else if (l > lower){
-    motor.setSpeed(reverse);
-  }
+  myPID.Compute();
+  Output = max(-max_speed, min(max_speed, Output));
+  motor.setSpeed(Output);
 }
