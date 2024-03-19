@@ -9,9 +9,8 @@ from Functions_for_Mission_Cycle_Graphs import *
 import pandas as pd
 import matplotlib.pyplot as plt
 
-
 ### Reading the flight mission cycle sheet
-print('Reading excel file...')
+print('Reading Excel File...')
 file_location = 'Flight_Mission_Cycle.xlsx'
 
 try:
@@ -36,80 +35,120 @@ if len(settings) < 1:
     exit()
 
 ### Plotting setting graphs
-timings = {} # Create a dictionary to store the start_time, duration of each setting 
-# {key: [start_time, duration]}
+timings = {} # Create a dictionary to store the start_time, duration of each setting
+# {key: [duration, start_time, cycles]}
+arduino_settings = {}
+# {key: [list_of_timings, list_of_forces, list_of_angles]}
 force_history = [] # Create a list to store the force history
 angle_history = [] # Create a list to store the angle history
-ftime_history = [] # Create a list to store the force time history
-atime_history = [] # Create a list to store the angle time history
+time_history = [] # Create a list to store the force time history
 start_time = 0
+error = False
 
 for setting in settings:
-    print(f'Processing {setting} settings...')
-    if setting in excel.sheet_names:
-        # Reading setting sheet
-        df = read_setting(file_location, setting)
-        df, error = prepare_setting(df)
-        if not error:
-
-            if settings_repeats[setting] > 1 and setting_counts[setting] != 0:
-                setting_repeat_no = setting_counts[setting]
-                cycles = list(mission_cycle.loc[setting, 'No. of cycles'])[setting_repeat_no]
-                setting_counts[setting] += 1
-                setting = f'{setting} (Repeat{setting_repeat_no})'
-                plot = False
-            elif settings_repeats[setting] > 1:
-                cycles = list(mission_cycle.loc[setting, 'No. of cycles'])[0]
-                setting_counts[setting] += 1
-                plot = True
+    if not error:
+        print(f'Processing {setting} settings...')
+        # If setting is a read setting, read the mission cycle stated and add
+        if setting[:4] == 'Read':
+            # Preparing to read new mission cycle, checking if read before
+            fms_file_name, addon, settings_repeats, setting_counts = previous_mission_cycle_name(settings_repeats, setting_counts, setting)
+            # Reading previous mission cycle
+            force_angle_sheet, settings_sheet, error = read_previous_mission_cycle(fms_file_name)
+            if not error:
+                # Updating current mission cycle
+                force_history, angle_history, time_history, start_time, timings = combining_mission_cyles(force_angle_sheet, start_time, settings_sheet, addon, timings, force_history, angle_history, time_history)
             else:
-                cycles = mission_cycle.loc[setting, 'No. of cycles']
-                setting_counts[setting] += 1
-                plot = True
+                print(f'ERROR: {setting} not processed due to error(s). See error message(s) above')
 
-            # Creating figure plot with mosaic
-            if plot:
-                fig, axs = plt.subplot_mosaic('''   aaa
-                                                    bbc''', figsize=(10, 8))
-                # a for force time graph, b for degree time graph, c for angle visual
+        elif setting in excel.sheet_names:
+            # Reading setting sheet
+            df = read_setting(file_location, setting)
+            df, error = prepare_setting(df)
 
-                fig.suptitle(f'{setting} settings', fontsize = 20) # adding title
-                # Plotting angle visual
-                plot_angle_visual(df, axs['c'])
+            if not error:
+                cycles, setting, plot = test_in_settings(settings_repeats, setting, setting_counts, mission_cycle)
+                # Test if plotting, if true create an set of axes
+                axsb, axsa = test_if_plot(plot, setting, df)
+                # Plotting degree time graph
+                angle, time = plot_degree_vs_time(df, axsb, plot)
 
-            # Plotting degree time graph
-            angle, atime = plot_degree_vs_time(df, axs['b'], plot)
-            
-            # Updating mission cycle with next angle settings
-            angle_history, angle_time = update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history, atime_history)
+                # Plotting force time graph
+                force = plot_force_vs_time(df, axsa, plot, angle, time)
 
-            # Plotting force time graph
-            force, ftime = plot_force_vs_time(df, axs['a'], plot)
+                # Test which side of 0 the max and min RoM are
+                max_rom_0, min_rom_0, total_time = test_roms(df)
+                    
+                # Updating mission cycle with next angle settings
+                angle_history, time_history = update_mission_cycle_angles(time, angle, cycles, start_time, angle_history, time_history, total_time, max_rom_0, min_rom_0)
 
-            # Updating mission cycle with next force settings
-            force_history, force_time, fduration = update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history)
+                # Updating mission cycle with next force settings
+                force_history, duration_with_cycles = update_mission_cycle_forces(time, force, cycles, start_time, force_history, time_history, total_time, max_rom_0, min_rom_0)
 
-            duration_with_cycles = fduration * cycles
-            timings[setting] = [duration_with_cycles, start_time]
-            start_time += duration_with_cycles
-
-            
+                timings[setting] = [duration_with_cycles, start_time, cycles]
+                start_time += duration_with_cycles
+                if setting not in arduino_settings:
+                    arduino_settings[setting] = [time, force, angle]
+            else:
+                print(f'ERROR: {setting} not processed due to error(s). See error message(s) above')
         else:
-            print(f'ERROR: {setting} not processed due to error(s). See error message(s) above')
-    else:
-        print(f'Warning: {setting} sheet not found')
+            print(f'Warning: {setting} sheet not found')
 
-### Plotting mission cycle timeline
+
 if not error:
+### Plotting mission cycle timeline
     print('Processing Mission Cycle...')
-    fig, axs = plt.subplot_mosaic('''a
-                                b
-                                c''', figsize=(10, 8))
-    fig.suptitle('Flight Mission Cycle', fontsize = 20)
-    plot_timeline_dict(timings, start_time, axs['a']) # Inputs are dictionary and final start and duration times
-    plot_mission_force(ftime_history, force_history, axs['b'])
-    plot_mission_angle(atime_history, angle_history, axs['c'])
-    fig.tight_layout()
-    print('Displaying graphs...')
-    plt.show()
+    mission_cycle_graphs(timings, start_time, time_history, force_history, angle_history)
+
+### Writing to Excel
+    print('Writing to Excel...')
+    writing_to_excel(time_history, force_history, angle_history, timings, 'output_1.xlsx')
+
+### Writing to c++ file
+    print('Writing to C++...')
+
+    # Reading the template text file
+    file_name = 'Arduino template.txt'
+    with open(file_name, 'r') as file:
+        file_content = file.readlines()
+    
+    # Updating the first lane to state that the file has been modified
+    file_content[1] = 'This file has been modified\n'
+
+    # Inserting main script
+    # Finding where the mission cycle starts
+    mission_cycle_start = file_content.index('// Add mission cycle here\n')
+    activity_start = mission_cycle_start + 1
+    for activity in timings.keys():
+        activity_string = activity.split('_')[0]
+        # Writing function in format:
+        # function_name(no. of cycles))
+        file_content.insert(activity_start, f'{activity_string}({timings[activity][2]});\n')
+
+    # Inserting fuctions
+    # Finding where the functions start
+    function_list_start = file_content.index('// Add functions here\n')
+    function_start = function_list_start + 1
+
+    for function in arduino_settings.keys():
+        delay = (arduino_settings[function][0][1] - arduino_settings[function][0][0]) * 1000
+        file_content.insert(function_start, f'void {function}(int cycles){{\n')
+        function_start += 1
+        file_content.insert(function_start, f'  for(int i = 0; i < cycles; i++){{\n')
+        function_start += 1
+        for count in range(len(arduino_settings[function][0])):
+            file_content.insert(function_start, f'      delay({int(delay)});\n')
+            file_content.insert(function_start, f'      analogWrite(9, {int(arduino_settings[function][1][count])});\n')
+            file_content.insert(function_start, f'      analogWrite(10, {int(arduino_settings[function][2][count])});\n')
+            function_start += 3
+        file_content.insert(function_start, f'  }}\n')
+        function_start += 1
+        file_content.insert(function_start, f'}}\n')
+        function_start += 1
+
+    ### Saving the modified text file
+    new_file_name = 'Arduino template modified.txt'
+    with open(new_file_name, 'w') as new_file:
+        new_file.writelines(file_content)
+
+### Complete
     print('Complete.')

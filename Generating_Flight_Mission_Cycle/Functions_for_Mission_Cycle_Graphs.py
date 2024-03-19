@@ -64,26 +64,27 @@ def prepare_setting(df):
     if df.loc['RoM', 'Type'] not in rom_settings:                                                    # If RoM type is not triangle or sinusoidal
         print('ERROR: RoM type is not correct. Please check the data.')
         error = True
+    force_type = df.loc['Force', 'Type']
+    if force_type == 'set_points':
+        if list(df.loc['Force'])[1] > 0 or list(df.loc['Force'])[1] < 0:                                        # If force is not zero at the start
+            print('Warning: Force is not zero at the start of the activity. Please check the data.')
+        if list(df.loc['Force'])[-1] > 0 or list(df.loc['Force'])[-1] < 0:                                      # If force is not zero at the end
+            print('Warning: Force is not zero at the end of the activity. Please check the data.')
+        if list(df.loc['Duration'])[1] > 0 or list(df.loc['Duration'])[1] < 0:                                  # If duration is not zero at the start
+            print('Warning: Duration is not zero at the start of the activity. Please check the data.')
 
-    if list(df.loc['Force'])[1] > 0 or list(df.loc['Force'])[1] < 0:                                        # If force is not zero at the start
-        print('Warning: Force is not zero at the start of the activity. Please check the data.')
-    if list(df.loc['Force'])[-1] > 0 or list(df.loc['Force'])[-1] < 0:                                      # If force is not zero at the end
-        print('Warning: Force is not zero at the end of the activity. Please check the data.')
-    if list(df.loc['Duration'])[1] > 0 or list(df.loc['Duration'])[1] < 0:                                  # If duration is not zero at the start
-        print('Warning: Duration is not zero at the start of the activity. Please check the data.')
-
-    if len(list(df.loc['Force'])) < 2:                                                                  # If there are less than 2 data points
-        print('ERROR: Less than 2 force data points. Please check the data.')
-        error = True
-    if df.loc['Force'].isna().sum() != df.loc['Duration'].isna().sum() -1:                                         # If force and duration are not the same length
-        print('ERROR: Force and Duration are not the same length. Please check the data.')
-        error = True
-    if np.isnan(list(df.loc['Force'])[1]):                                                                  # If there is no data in the force column
-        print('ERROR: No data in the force column. Please check the data.')
-        error = True
-    if np.isnan(list(df.loc['Duration'])[1]):                                                               # If there is no data in the duration column
-        print('ERROR: No data in the duration column. Please check the data.')
-        error = True
+        if len(list(df.loc['Force'])) < 2:                                                                  # If there are less than 2 data points
+            print('ERROR: Less than 2 force data points. Please check the data.')
+            error = True
+        if df.loc['Force'].isna().sum() != df.loc['Duration'].isna().sum() -1:                                         # If force and duration are not the same length
+            print('ERROR: Force and Duration are not the same length. Please check the data.')
+            error = True
+        if np.isnan(list(df.loc['Force'])[1]):                                                                  # If there is no data in the force column
+            print('ERROR: No data in the force column. Please check the data.')
+            error = True
+        if np.isnan(list(df.loc['Duration'])[1]):                                                               # If there is no data in the duration column
+            print('ERROR: No data in the duration column. Please check the data.')
+            error = True
                                                           
     if np.isnan(list(df.loc['Max_RoM'])[1]):                                                               # If no Max_RoM value is entered
         print('ERROR: No Max_RoM entered. Please check the data.')
@@ -109,25 +110,63 @@ def prepare_setting(df):
         
         # Calculating end time
         df.loc['end_time'] = df.loc['Duration'].cumsum()
-
     df= df.transpose()
     
     return df, error
 
-def plot_force_vs_time(df, axs, plot):
+def plot_force_vs_time(df, axs, plot, angle, time):
     ''' This function takes a dataframe and plots the force vs time on a given axis.
         '''
     force_setting = df.loc['Type', 'Force']
+    # If force type is set_points
     if force_setting == 'set_points':
+        force = list(df['Force'])[1:]
         end_time = list(df['end_time'])[1:]
-        force= list(df['Force'])[1:]
+        saved_end_time = []
+        saved_force = []
+        total_time = end_time[-1]-end_time[0]
+
+        for i in range(len(end_time)-1):
+            interval_time = end_time[i+1] - end_time[i]
+            num_points = int(len(angle) * interval_time / total_time)
+            current_end_time = np.linspace(end_time[i], end_time[i+1], num_points)
+            current_force = np.linspace(force[i], force[i+1], num_points)
+            saved_end_time.extend(current_end_time.tolist())
+            saved_force.extend(current_force.tolist())
+
+        # If there are any remaining points due to rounding, add them to the last interval
+        remaining_points = len(angle) - len(saved_end_time)
+        if remaining_points > 0:
+            last_end_time = np.linspace(end_time[-1], end_time[-1], remaining_points)
+            last_force = np.linspace(force[-1], force[-1], remaining_points)
+            saved_end_time.extend(last_end_time.tolist())
+            saved_force.extend(last_force.tolist())
+
+        end_time = saved_end_time
+        force = saved_force
+
+    elif force_setting == 'angle_dependent':
+        angle_instruction = list(df['Force'])[1]
+        operator = angle_instruction[0]
+        angle_causing_change = float(angle_instruction[1:])
+        force = np.zeros(len(time))
+        set_force = list(df['Force'])[2]
+        if operator == '>':
+            for i in range(len(time)):
+                if angle[i] > angle_causing_change:
+                    force[i] = set_force
+        if operator == '<':
+            for i in range(len(time)):
+                if angle[i] < angle_causing_change:
+                    force[i] = set_force
             
     if plot:
-        axs.plot(end_time, force)
+        axs.plot(time, force)
         axs.set_xlabel('Time')
         axs.set_ylabel('Force')
         axs.set_title('Force vs Time')
-    return force, end_time
+
+    return list(force)
     
 def calcualte_roms_and_periods(df):
     ''' This function takes a dataframe and calculates the max and min RoM and the period of the activity.
@@ -135,7 +174,10 @@ def calcualte_roms_and_periods(df):
     max_rom = df.loc['Unnamed: 2', 'Max_RoM']
     min_rom = df.loc['Unnamed: 2', 'Min_RoM']
     period = df.loc['Unnamed: 2', 'Period']
-    total_time = list(df['end_time'])[-1]
+    if df.loc['Type', 'Force'] == 'set_points':
+        total_time = list(df['end_time'])[-1]
+    elif df.loc['Type', 'Force'] == 'angle_dependent':
+        total_time = df.loc['Unnamed: 2', 'end_time']
     return max_rom, min_rom, period, total_time
     
 
@@ -151,6 +193,7 @@ def plot_degree_vs_time(df, axs, plot):
     else:
         print('ERROR: RoM type not recognised. Please check the data.')
         exit()
+
     if plot:
         # Plot the graph
         axs.plot(time, angle)
@@ -167,28 +210,52 @@ def triangle_angle(time, max_rom, min_rom, period, total_time):
             print('ERROR: Period does not divide total time. Please check the data.')
 
         # Plotting Angle vs Time
-        angle = [max_rom, min_rom] * n_saws # Create points to plot
-        angle.append(0) # Add the final point
-        angle.insert(0, 0) # Add the first point
+        if min_rom > 0:
+            intial_angle = [min_rom, max_rom, min_rom]
+            additional_angle = [max_rom, min_rom] * (n_saws -1)
+            angle = intial_angle + additional_angle
+        elif max_rom < 0:
+            intial_angle = [max_rom, min_rom, max_rom]
+            additional_angle = [min_rom, max_rom] * (n_saws -1)
+            angle = intial_angle + additional_angle
+        else:
+            angle = [max_rom, min_rom] * n_saws # Create points to plot
+            angle.append(0) # Add the final point
+            angle.insert(0, 0) # Add the first point
 
         if max_rom == min_rom:
             max_fraction_through = 0.5
         else:
             max_fraction_through = abs(max_rom/(max_rom - min_rom))
-
-        time = [0, max_fraction_through * period/2, max_fraction_through * period/2 + period/2] # Create time points
+        
+        if min_rom > 0 or max_rom < 0:
+            time = [0, period/2] # Create time points
+        else:
+            time = [0, max_fraction_through * period/2, max_fraction_through * period/2 + period/2] # Create time points
+        
         count = 1
         while count < n_saws:
             time += [x + period for x in time[-2:]]
             count += 1
         time.append(total_time)
-        return angle, time
+
+        saved_time = []
+        saved_angle = []
+
+        for i in range(len(time)-1):
+            saved_time.extend(np.linspace(time[i], time[i+1], num=20))
+            saved_angle.extend(np.linspace(angle[i], angle[i+1], num=20))
+
+        return saved_angle, saved_time
 
 def sinonisoidal_angle(time, max_rom, min_rom, period, total_time):
-        time = np.linspace(0, total_time, 100)
+        time = np.linspace(0, total_time, 50)
         amplitude = (max_rom - min_rom)/2
         y_offset = (max_rom + min_rom)/2
-        x_offset =np.arcsin(-y_offset/amplitude)
+        if max_rom < 0 or min_rom > 0 or amplitude == 0:
+            x_offset = 0
+        else:
+            x_offset =np.arcsin(-y_offset/amplitude)
         angle = amplitude * np.sin(2 * np.pi * time/period + x_offset) + y_offset
         return angle, time
 
@@ -232,7 +299,8 @@ def plot_angle_visual(df, axs):
     axs.set_aspect('equal')
     axs.set_title('Angle Visual')
 
-def update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history, atime_history):
+def update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history, atime_history, total_time, max_rom_0, min_rom_0):
+    length = len(atime) * cycles
     aduration = max(atime)
     updated_atime = [x + start_time for x in atime]
 
@@ -246,24 +314,48 @@ def update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history,
     updated_angle = angle * cycles
     angle_history += updated_angle
     atime_history += updated_atime
+
+    if max_rom_0:
+        atime_history[-length:] = [time + 3 for time in atime_history[-length:]]
+        angle_history.insert(-length, 0)
+        angle_history.append(0)
+        atime_history.insert(-length, start_time)
+        atime_history.append(start_time + total_time * cycles + 6)
+    
+    elif min_rom_0:
+        atime_history[-length:] = [time + 3 for time in atime_history[-length:]]
+        angle_history.insert(-length, 0)
+        angle_history.append(0)
+        atime_history.insert(-length, start_time)
+        atime_history.append(start_time + total_time * cycles + 6)
+    
     return(angle_history, atime_history)
 
-def update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history):
+def update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history, total_time, max_rom_0, min_rom_0):
+    length = len(ftime) * cycles
     fduration = max(ftime)
+    duration_with_cycles = fduration * cycles
 
     force = force * cycles
-    updated_ftime = [x + start_time for x in ftime]
-
-    number_of_changes = len(ftime)
-    count = 1
-    final_fvalue = updated_ftime[-1]
-    while count < cycles:
-        updated_ftime += [x  + final_fvalue + (count-1) * fduration for x in ftime[-number_of_changes:]]
-        count += 1
     
     force_history += force 
-    ftime_history += updated_ftime
-    return(force_history, ftime_history, fduration)
+    # ftime_history += updated_ftime
+
+    if max_rom_0:
+        ftime_history[-length:] = [time + 3 for time in ftime_history[-length:]]
+        force_history.insert(-length, 0)
+        force_history.append(0)
+
+        duration_with_cycles += 6
+
+    elif min_rom_0:
+        ftime_history[-length:] = [time + 3 for time in ftime_history[-length:]]
+        force_history.insert(-length, 0)
+        force_history.append(0)
+
+        duration_with_cycles += 6
+    
+    return(force_history, int(duration_with_cycles))
 
 def plot_timeline_dict(timing_dict,  end_time, axs):
     ''' This function takes a dictionary and plots a timeline of the mission cycle.
@@ -299,3 +391,140 @@ def plot_mission_angle(time, angle, axs):
     axs.set_xlabel('Time')
     axs.set_ylabel('Angle (deg)')
     axs.set_xlim(0)
+
+def writing_to_excel(time, force_history, angle_history, timings, excel_file_name):
+    # Create new data frame
+    values_dict = {'Time': time, 'Force': force_history, 'Angle': angle_history}
+    values_df = pd.DataFrame(values_dict)
+    values_df = values_df.set_index('Time')
+
+    settings_df = pd.DataFrame(timings)
+    settings_df.index = ['Duration', 'Start Time', 'No. of cycles']  # Set header names
+
+    with pd.ExcelWriter(excel_file_name) as excel_writer:
+        values_df.to_excel(excel_writer, sheet_name='Values')
+        settings_df.to_excel(excel_writer, sheet_name='Settings')
+
+def process_setting(timings, setting, settings_repeats, setting_counts, mission_cycle, df, start_time, force_history, angle_history, ftime_history, atime_history):
+    cycles, setting, plot = test_in_settings(settings_repeats, setting, setting_counts, mission_cycle)
+    # Test if plotting, if true create an set of axes
+    axsb, axsa = test_if_plot(plot, setting, df)
+    # Plotting degree time graph
+    angle, atime = plot_degree_vs_time(df, axsb, plot)
+
+    # Plotting force time graph
+    force, ftime = plot_force_vs_time(df, axsa, plot, angle, atime)
+
+    # Test which side of 0 the max and min RoM are
+    max_rom_0, min_rom_0, total_time = test_roms(df)
+
+    # Updating mission cycle with next angle settings
+    angle_history, atime_history = update_mission_cycle_angles(atime, angle, cycles, start_time, angle_history, atime_history, total_time, max_rom_0, min_rom_0)
+
+    # Updating mission cycle with next force settings
+    force_history, ftime_history, duration_with_cycles = update_mission_cycle_forces(ftime, force, cycles, start_time, force_history, ftime_history, total_time, max_rom_0, min_rom_0)
+
+    timings[setting] = [duration_with_cycles, start_time, cycles]
+    start_time += duration_with_cycles
+    return angle_history, atime_history, force_history, ftime_history, duration_with_cycles, cycles, timings, start_time
+
+def test_in_settings(settings_repeats, setting, setting_counts, mission_cycle):
+    if settings_repeats[setting] > 1 and setting_counts[setting] != 0:
+        setting_repeat_no = setting_counts[setting]
+        cycles = list(mission_cycle.loc[setting, 'No. of cycles'])[setting_repeat_no]
+        setting_counts[setting] += 1
+        setting = f'{setting} \n (Repeat{setting_repeat_no})'
+        plot = False
+    elif settings_repeats[setting] > 1:
+        cycles = list(mission_cycle.loc[setting, 'No. of cycles'])[0]
+        setting_counts[setting] += 1
+        plot = True
+    else:
+        cycles = mission_cycle.loc[setting, 'No. of cycles']
+        setting_counts[setting] += 1
+        plot = True
+    
+    return int(cycles), setting, plot
+
+def test_if_plot(plot, setting, df):
+        # Creating figure plot with mosaic
+    if plot:
+        fig, axs = plt.subplot_mosaic('''   aaa
+                                            bbc''', figsize=(10, 8))
+        # a for force time graph, b for degree time graph, c for angle visual
+
+        fig.suptitle(f'{setting} settings', fontsize = 20) # adding title
+        # Plotting angle visual
+        plot_angle_visual(df, axs['c'])
+        axsb = axs['b']
+        axsa = axs['a']
+
+    else :
+        axsb = None
+        axsa = None
+    return axsb, axsa
+
+def test_roms(df):
+    max_rom, min_rom, period, total_time = calcualte_roms_and_periods(df)
+    max_rom_0 = False
+    min_rom_0 = False
+    if max_rom < 0:
+        max_rom_0 = True
+    if min_rom > 0:
+        min_rom_0 = True
+    return max_rom_0, min_rom_0, total_time
+
+def mission_cycle_graphs(timings, start_time, time_history, force_history, angle_history):
+    ''' This function takes an excel file and processes the mission cycle sheets.
+        '''
+    fig, axs = plt.subplot_mosaic('''a
+                                b
+                                c''', figsize=(10, 8))
+    fig.suptitle('Flight Mission Cycle', fontsize = 20)
+    plot_timeline_dict(timings, start_time, axs['a']) # Inputs are dictionary and final start and duration times
+    plot_mission_force(time_history, force_history, axs['b'])
+    plot_mission_angle(time_history, angle_history, axs['c'])
+    fig.tight_layout()
+    print('Displaying Graphs...')
+    plt.show()
+
+def previous_mission_cycle_name(settings_repeats, setting_counts, setting):
+    if settings_repeats[setting] == 1:
+        settings_repeats.pop(setting)
+        setting_counts.pop(setting)
+        addon = '_0'
+    else:
+        addon = f'_{settings_repeats[setting]}'
+        settings_repeats[setting] -= 1
+
+    fms_name = f'{setting[5:]}'
+    fms_file_name = fms_name + '.xlsx'
+    return fms_file_name, addon, settings_repeats, setting_counts
+
+def read_previous_mission_cycle(file_name):
+    try:
+        force_angle_sheet = pd.read_excel(file_name, sheet_name='Values', index_col=None, header=0)
+        settings_sheet = pd.read_excel(file_name, sheet_name='Settings', index_col=0, header=0)
+        error = False
+    except:
+        print('ERROR: File cannot be opened. Please check the file location and whether it is open and try again.')
+        error = True
+        force_angle_sheet = None
+        settings_sheet = None
+
+    return force_angle_sheet, settings_sheet, error
+
+def combining_mission_cyles(force_angle_sheet, start_time, settings_sheet, addon, timings, force_history, angle_history, time_history):
+    fms_times = list(force_angle_sheet['Time'] + start_time)
+    force_history += list(force_angle_sheet['Force'])
+    angle_history += list(force_angle_sheet['Angle'])
+    time_history += fms_times
+
+    # Update timings dictionary
+    settings_sheet.loc['Start Time', :] += start_time
+    fms_settings = list(settings_sheet.columns)
+    for fms_setting in fms_settings:
+        new_fms_setting = fms_setting + addon
+        timings[new_fms_setting] = [settings_sheet.loc[ 'Duration', fms_setting], settings_sheet.loc['Start Time', fms_setting], settings_sheet.loc['No. of cycles', fms_setting]]
+    start_time = fms_times[-1]
+    return force_history, angle_history, time_history, start_time, timings

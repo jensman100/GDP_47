@@ -8,8 +8,20 @@ key_variable_2 =
 
 Then we will get to the main script running through each setting, this will be a variable length
 // Add mission cycle here
+void setup{
+	light_switch(n cycles ls, f max ls, f min, rom max,   rom min) <- written by python
+	typing(1)
+	end()
+}
 
-// Add functions here
+void light_switch(cycles) <- also written by python
+	force = 100
+	rom_period = 10
+	...
+
+	
+	
+
 
 
 ***End script***
