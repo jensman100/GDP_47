@@ -131,15 +131,45 @@ if not error:
 
     for function in arduino_settings.keys():
         delay = (arduino_settings[function][0][1] - arduino_settings[function][0][0]) * 1000
+        stored_delay = delay
         file_content.insert(function_start, f'void {function}(int cycles){{\n')
         function_start += 1
         file_content.insert(function_start, f'  for(int i = 0; i < cycles; i++){{\n')
         function_start += 1
+
+        final_delay = False
+        old_angle = np.nan
+        old_force = np.nan
+
         for count in range(len(arduino_settings[function][0])):
+
+            new_angle = int(arduino_settings[function][1][count]) 
+            new_force = int(arduino_settings[function][2][count])
+
+            if old_angle == new_angle and old_force == new_force:
+                delay += (arduino_settings[function][0][count] - arduino_settings[function][0][count - 1]) * 1000
+                final_delay = True
+
+            else:
+                final_delay = False
+                if old_angle != new_angle:
+                    file_content.insert(function_start, f'      analogWrite(11, {int(arduino_settings[function][1][count])});\n')
+                    function_start += 1
+                if old_force != new_force:
+                    file_content.insert(function_start, f'      analogWrite(12, {int(arduino_settings[function][2][count])});\n')
+                    function_start += 1
+
+                file_content.insert(function_start, f'      delay({int(delay)});\n')
+                function_start += 1
+                delay = stored_delay
+
+                old_angle = new_angle
+                old_force = new_force
+        
+        if final_delay:
             file_content.insert(function_start, f'      delay({int(delay)});\n')
-            file_content.insert(function_start, f'      analogWrite(9, {int(arduino_settings[function][1][count])});\n')
-            file_content.insert(function_start, f'      analogWrite(10, {int(arduino_settings[function][2][count])});\n')
-            function_start += 3
+            function_start += 1
+
         file_content.insert(function_start, f'  }}\n')
         function_start += 1
         file_content.insert(function_start, f'}}\n')
