@@ -101,84 +101,17 @@ if not error:
 
 ### Writing to Excel
     print('Writing to Excel...')
-    writing_to_excel(time_history, force_history, angle_history, timings, 'output_1.xlsx')
+    output_excel = 'output_1.xlsx'
+    writing_to_excel(time_history, force_history, angle_history, timings, output_excel)
 
 ### Writing to c++ file
     print('Writing to C++...')
-
-    # Reading the template text file
-    file_name = 'Arduino template.txt'
-    with open(file_name, 'r') as file:
-        file_content = file.readlines()
-    
-    # Updating the first lane to state that the file has been modified
-    file_content[1] = 'This file has been modified\n'
-
-    # Inserting main script
-    # Finding where the mission cycle starts
-    mission_cycle_start = file_content.index('// Add mission cycle here\n')
-    activity_start = mission_cycle_start + 1
-    for activity in timings.keys():
-        activity_string = activity.split('_')[0]
-        # Writing function in format:
-        # function_name(no. of cycles))
-        file_content.insert(activity_start, f'{activity_string}({timings[activity][2]});\n')
-
-    # Inserting fuctions
-    # Finding where the functions start
-    function_list_start = file_content.index('// Add functions here\n')
-    function_start = function_list_start + 1
-
-    for function in arduino_settings.keys():
-        delay = (arduino_settings[function][0][1] - arduino_settings[function][0][0]) * 1000
-        stored_delay = delay
-        file_content.insert(function_start, f'void {function}(int cycles){{\n')
-        function_start += 1
-        file_content.insert(function_start, f'  for(int i = 0; i < cycles; i++){{\n')
-        function_start += 1
-
-        final_delay = False
-        old_angle = np.nan
-        old_force = np.nan
-
-        for count in range(len(arduino_settings[function][0])):
-
-            new_angle = int(arduino_settings[function][1][count]) 
-            new_force = int(arduino_settings[function][2][count])
-
-            if old_angle == new_angle and old_force == new_force:
-                delay += (arduino_settings[function][0][count] - arduino_settings[function][0][count - 1]) * 1000
-                final_delay = True
-
-            else:
-                final_delay = False
-                if old_angle != new_angle:
-                    file_content.insert(function_start, f'      analogWrite(11, {int(arduino_settings[function][1][count])});\n')
-                    function_start += 1
-                if old_force != new_force:
-                    file_content.insert(function_start, f'      analogWrite(12, {int(arduino_settings[function][2][count])});\n')
-                    function_start += 1
-
-                file_content.insert(function_start, f'      delay({int(delay)});\n')
-                function_start += 1
-                delay = stored_delay
-
-                old_angle = new_angle
-                old_force = new_force
-        
-        if final_delay:
-            file_content.insert(function_start, f'      delay({int(delay)});\n')
-            function_start += 1
-
-        file_content.insert(function_start, f'  }}\n')
-        function_start += 1
-        file_content.insert(function_start, f'}}\n')
-        function_start += 1
-
-    ### Saving the modified text file
-    new_file_name = 'Arduino template modified.txt'
-    with open(new_file_name, 'w') as new_file:
-        new_file.writelines(file_content)
+    arduino_file_name = 'Arduino template modified.txt'
+    write_to_c(arduino_file_name, timings, arduino_settings)
 
 ### Complete
     print('Complete.')
+
+### Errors
+else:
+    print('ERROR: Mission cycle not processed due to error(s). Please check the error message(s) above and try again.')
