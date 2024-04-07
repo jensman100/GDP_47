@@ -525,7 +525,7 @@ def combining_mission_cyles(force_angle_sheet, start_time, settings_sheet, addon
     fms_settings = list(settings_sheet.columns)
     for fms_setting in fms_settings:
         new_fms_setting = fms_setting + addon
-        timings[new_fms_setting] = [settings_sheet.loc[ 'Duration', fms_setting], settings_sheet.loc['Start Time', fms_setting], settings_sheet.loc['No. of cycles', fms_setting]]
+        timings[new_fms_setting] = [settings_sheet.loc['Duration', fms_setting], settings_sheet.loc['Start Time', fms_setting], settings_sheet.loc['No. of cycles', fms_setting]]
     start_time = fms_times[-1]
     return force_history, angle_history, time_history, start_time, timings
 
