@@ -114,26 +114,32 @@ def view():
     create_force_rom_plot(activity_name, time, force, angle)
 
 view_button = ttk.Button(root, text="View", command=view)
-view_button.grid(row=6, column=0, padx=10, pady=10)
+view_button.grid(row=7, column=0, padx=10, pady=10)
 
 # Default Button
-def set_default_values():
-    print('Inputting Default Values')
-    activity_entry.delete(0, tk.END)
-    activity_entry.insert(0, activity_name)
-    duration_entry.delete(0, tk.END)
-    duration_entry.insert(0, str(duration))
-    force_max_entry.delete(0, tk.END)
-    force_max_entry.insert(0, str(force_max))
-    force_min_entry.delete(0, tk.END)
-    force_min_entry.insert(0, str(force_min))
-    rom_max_entry.delete(0, tk.END)
-    rom_max_entry.insert(0, str(ROM_max))
-    rom_min_entry.delete(0, tk.END)
-    rom_min_entry.insert(0, str(ROM_min))
+def import_activity():
+    activity = activity_entry.get()
+    print(f'Attempting to read {activity}')
+    activity_name, duration, force_max, force_min, rom_max, rom_min, time, angle, force = read_activity(activity)
+    if activity_name is None:
+        return
+    else:
+        activity_entry.delete(0, tk.END)
+        activity_entry.insert(0, activity_name)
+        duration_entry.delete(0, tk.END)
+        duration_entry.insert(0, duration)
+        force_max_entry.delete(0, tk.END)
+        force_max_entry.insert(0, force_max)
+        force_min_entry.delete(0, tk.END)
+        force_min_entry.insert(0, force_min)
+        rom_max_entry.delete(0, tk.END)
+        rom_max_entry.insert(0, rom_max)
+        rom_min_entry.delete(0, tk.END)
+        rom_min_entry.insert(0, rom_min)
+        print(f'{activity} has been inputted successfully')
 
-default_button = ttk.Button(root, text="Default", command=set_default_values)
-default_button.grid(row=6, column=1, padx=10, pady=10)
+import_button = ttk.Button(root, text="Read Activity", command=import_activity)
+import_button.grid(row=7, column=1, padx=10, pady=10)
 
 def confirm():
     print('Attempting to Save Activity to Excel')
@@ -170,9 +176,13 @@ def confirm():
 
     try:
         df = pd.read_excel(file_path)
+        print('Overwrite?')
         overwrite = messagebox.askyesno("File Exists", "The file already exists. Do you want to overwrite it?")
         if not overwrite:
+            print(' No. Confirm Cancelled')
             return
+        else:
+            print(' Yes. Overwriting File')
     except:
         pass
 
@@ -205,7 +215,7 @@ def confirm():
         return       
 
 confirm_button = ttk.Button(root, text="Confirm", command=confirm)
-confirm_button.grid(row=6, column=2, padx=10, pady=10)
+confirm_button.grid(row=7, column=2, padx=10, pady=10)
 
 def close():
     print('Exiting Programme')
@@ -213,6 +223,6 @@ def close():
     plt.close('all')
 
 close_button = ttk.Button(root, text="Close", command=close)
-close_button.grid(row=6, column=3, padx=10, pady=10)
+close_button.grid(row=7, column=3, padx=10, pady=10)
 
 root.mainloop()
