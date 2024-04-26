@@ -1,19 +1,14 @@
-import tkinter as tk
-import os
-
-from main_gui import Main_GUI
-from first_gui import FirstWindow
-from create_activity_gui import ActivityGenerator
-
-
 ''' This script creates a GUI which helps the user create an activity to add to the mission cycle.
-
-To do:
-
-Import activity button
 '''
 
 # Importing libraries
+import os
+
+from Main_Menu import Main_Menu
+from Create_Mission_Cycle import Create_Mission_Cycle
+from Create_Activity import Create_Activity
+from Create_CPP_File import Create_CPP_File
+from Running_mission_cycle import run_mission_cycle
 
 # Get location where file is being run
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -31,34 +26,39 @@ if not os.path.exists(FMC_dir):
     os.mkdir(FMC_dir)
 
 
-# ### Call the GUI class
-# app = main_GUI(current_dir)
-
-
 action = 'first'
 run_loop = True
 
 while run_loop:
     if action == 'first':
         try:
-            action = FirstWindow().get_result()
+            action = Main_Menu().get_next_action()
         except:
             run_loop = False
 
     elif action == 'activity':
-        action = ActivityGenerator(current_dir).get_result()
-
-    elif action == 'FMC':
         try:
-            action = Main_GUI(current_dir).get_result()
+            action = Create_Activity(current_dir).get_next_action()
         except:
             action = 'first'
 
+    elif action == 'FMC':
+        try:
+            action = Create_Mission_Cycle(current_dir).get_next_action()
+        except:
+            action = 'first'
 
     elif action == 'cpp':
-        print('Not yet implemented')
-        action = 'first'
-        ### Need to add the C++ GUI here
+        try:
+            action = Create_CPP_File(current_dir).get_next_action()
+        except:
+            action = 'first'
+
+    elif action =='run_mission_cycle':
+        try:
+            action = run_mission_cycle(current_dir)
+        except:
+            action = 'first'
 
     else:
         run_loop = False
